@@ -4,12 +4,20 @@
     <vendor url="https://github.com/pocikode/go-lsp-intellij">Go LSP contributors</vendor>
 
     <depends>com.intellij.modules.platform</depends>
-    <depends>com.redhat.devtools.lsp4ij</depends>
+    <!--
+        The IntelliJ LSP API ships in the IntelliJ IDEA (Ultimate) distribution and, since 2025.2,
+        works without a paid license. The dependency is optional so the plugin still installs in
+        builds without the module (Community 2025.2, Android Studio); only the gofmt/goimports
+        format-on-save action works there. Everything that touches com.intellij.platform.lsp lives
+        in go-lsp.xml.
+    -->
+    <depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoLspSettingsState" />
         <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSaveState" />
         <applicationConfigurable parentId="tools" displayName="Go LSP"
+                                 id="com.github.pocikode.go_lsp_intellij.GoLspConfigurable"
                                  instance="com.github.pocikode.go_lsp_intellij.GoLspConfigurable" />
         <actionOnSaveInfoProvider id="GoLspFormatOnSaveInfoProvider"
                                    implementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSaveInfoProvider" />
@@ -17,30 +25,4 @@
                        implementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSave" />
         <notificationGroup id="Go LSP" displayType="BALLOON" />
     </extensions>
-
-    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
-        <server id="go-lsp" name="Go Language Server"
-                factoryClass="com.github.pocikode.go_lsp_intellij.GoLanguageServerFactory">
-            <description><![CDATA[
-                <p>Go language support backed by the installed <code>gopls</code> language server.</p>
-            ]]></description>
-        </server>
-        <!-- Keep the bundled TextMate Go grammar active; a custom LanguageFileType would disable it. -->
-        <fileNamePatternMapping patterns="*.go" serverId="go-lsp" languageId="go"
-                                documentMatcher="com.github.pocikode.go_lsp_intellij.GoDocumentMatcher" />
-        <lang.foldingBuilder language="textmate"
-                             implementationClass="com.redhat.devtools.lsp4ij.features.foldingRange.LSPFoldingRangeBuilder"
-                             order="first" />
-        <codeInsight.parameterInfo language="textmate"
-                                   implementationClass="com.redhat.devtools.lsp4ij.features.signatureHelp.LSPParameterInfoHandler" />
-        <lang.psiStructureViewFactory language="textmate"
-                                      implementationClass="com.redhat.devtools.lsp4ij.features.documentSymbol.LSPDocumentSymbolStructureViewFactory" />
-    </extensions>
-
-    <actions>
-        <action id="GoLsp.RestartServer" class="com.github.pocikode.go_lsp_intellij.RestartGoLspAction"
-                text="Restart Go Language Server" description="Restart gopls for the current project">
-            <add-to-group group-id="ToolsMenu" anchor="last" />
-        </action>
-    </actions>
 </idea-plugin>

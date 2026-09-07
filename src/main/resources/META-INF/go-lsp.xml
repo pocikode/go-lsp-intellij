@@ -1,0 +1,25 @@
+<idea-plugin>
+    <!-- Loaded only when com.intellij.modules.lsp is available. -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Go files keep IntelliJ's bundled TextMate grammar for highlighting; gopls provides the rest. -->
+        <platform.lsp.serverSupportProvider
+            implementation="com.github.pocikode.go_lsp_intellij.GoLspServerSupportProvider" />
+        <!--
+            Navigation is handled here rather than by the platform client: its reference provider
+            only answers during a Go to Declaration action (so Cmd/Ctrl+hover never styles call
+            sites) and it never reports declarations (so Cmd/Ctrl+click on a declaration would go
+            nowhere). The descriptor disables the platform's go-to-definition to avoid duplicates.
+        -->
+        <psi.implicitReferenceProvider implementation="com.github.pocikode.go_lsp_intellij.GoLspReferenceProvider" />
+        <psi.declarationProvider implementation="com.github.pocikode.go_lsp_intellij.GoLspDeclarationProvider" />
+        <searcher forClass="com.intellij.find.usages.api.UsageSearchParameters"
+                  implementationClass="com.github.pocikode.go_lsp_intellij.GoLspUsageSearcher" />
+    </extensions>
+
+    <actions>
+        <action id="GoLsp.RestartServer" class="com.github.pocikode.go_lsp_intellij.RestartGoLspAction"
+                text="Restart Go Language Server" description="Restart gopls for the current project">
+            <add-to-group group-id="ToolsMenu" anchor="last" />
+        </action>
+    </actions>
+</idea-plugin>

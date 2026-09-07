@@ -2,34 +2,36 @@
 
 <!-- Plugin description -->
 
-Free Go language support for IntelliJ IDEA Community powered by the installed `gopls` language server.
+Free Go language support for IntelliJ IDEA powered by the installed `gopls` language server and the IntelliJ LSP API.
 
 <!-- Plugin description end -->
 
-This project is an LSP-based alternative for IntelliJ IDEA users who want modern Go editor support without purchasing GoLand. It uses [LSP4IJ](https://github.com/redhat-developer/lsp4ij) to connect IntelliJ to [gopls](https://pkg.go.dev/golang.org/x/tools/gopls).
+This project is an LSP-based alternative for IntelliJ IDEA users who want modern Go editor support without purchasing GoLand. It uses the built-in [IntelliJ LSP API](https://plugins.jetbrains.com/docs/intellij/language-server-protocol.html) to connect IntelliJ to [gopls](https://pkg.go.dev/golang.org/x/tools/gopls). Since IntelliJ IDEA 2025.2 that API works for every user, with or without a paid license.
 
 ## Current Status
 
 The first milestone is the server integration foundation:
 
 - Go filename mapping with IntelliJ's bundled TextMate syntax highlighting
-- Installed `gopls` discovery
+- Installed `gopls` discovery, with a notification when it is missing
 - Project-scoped `gopls` process startup over stdio
-- LSP4IJ language mapping
 - Persistent executable and argument settings
-- Restart action
-- LSP-backed folding, signature help, document symbols, and go-to-definition
+- Language-server status bar widget and restart action
+- LSP-backed diagnostics, completion, hover, go-to-definition, find usages, code actions, formatting, folding, and inlay hints
+- Cmd/Ctrl+hover link styling, Cmd/Ctrl+click navigation, and usages popup on declarations, as in GoLand
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
 
-The remaining core editor capabilities, including diagnostics, completion, hover, references, rename, and code actions, come from the LSP4IJ and `gopls` integration and are being validated against the selected platform baseline.
+Signature help, structure view, and call hierarchy are provided by the platform starting with IntelliJ IDEA 2025.3. See [docs/FEATURES.md](docs/FEATURES.md) for the full matrix.
 
 ## Requirements
 
-- IntelliJ IDEA Community 2024.2 or newer
-- Java 17 runtime for the plugin, Java 21 for building
+- IntelliJ IDEA 2025.2.1 or newer (the standard IntelliJ IDEA download; no license required)
+- Java 21 for building
 - Go installed on the machine
 - `gopls` installed and executable
 - `gofmt` available from the Go installation
+
+The 2025.2 Community Edition build does not contain the LSP module. The plugin installs there, but only format-on-save works. From 2025.3 there is a single IntelliJ IDEA distribution and LSP support is available to everyone.
 
 Install `gopls` with:
 
@@ -66,15 +68,15 @@ Open `Settings | Tools | Go LSP`:
 - Arguments default to `serve`.
 - Enable or disable `Organize imports with goimports`.
 
-LSP4IJ also provides its own language-server console and tracing controls.
+The language-server widget in the status bar shows the `gopls` state and offers stop and restart actions. `Tools | Restart Go Language Server` restarts it as well. Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Settings` to trace LSP traffic.
 
 To format Go files automatically when saving, enable `Reformat Go files with gofmt` in `Settings | Tools | Actions on Save`. The action formats the current editor contents with `gofmt` before saving. `Organize imports with goimports` is enabled by default. When installed, `goimports` runs against a temporary file beside the source file so it can resolve the project module, remove unused imports, and create standard-library versus third-party import groups. If it is not installed, the action safely falls back to `gofmt` only.
 
 ## Product Compatibility
 
-The initial target is IntelliJ IDEA Community. LSP4IJ is used because IntelliJ's built-in LSP API is not available to Community editions.
+The target is the IntelliJ IDEA distribution 2025.2.1 and newer. The plugin declares an optional dependency on the `com.intellij.modules.lsp` module, which JetBrains ships in IntelliJ IDEA and the other commercial IDEs.
 
-GoLand already includes JetBrains' native Go plugin. GoLand support is therefore a future compatibility project and may require detecting or disabling duplicate Go language registrations. This plugin is not currently positioned as a GoLand replacement.
+GoLand already includes JetBrains' native Go plugin. When that plugin is actually loaded, this plugin does not start `gopls`, so the two do not produce duplicate navigation results. A Go plugin that is installed but cannot load, for example without an Ultimate subscription, does not block `gopls`. GoLand support beyond that guard is a future compatibility project.
 
 ## References
 

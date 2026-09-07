@@ -2,10 +2,10 @@
 
 ## Phase 1: Core Editor
 
-- Stabilize LSP4IJ integration.
+- Stabilize the IntelliJ LSP API integration.
 - Validate diagnostics, completion, hover, navigation, references, rename, imports, symbols, code actions, and format-on-save.
 - Add disk-backed integration tests.
-- Improve missing-server notifications.
+- Offer to install `gopls` from the missing-server notification.
 
 ## Phase 2: Core Plus
 

@@ -22,7 +22,9 @@ Set `gopls` explicitly in the plugin settings when testing a non-default install
 ./gradlew verifyPlugin
 ```
 
-`runIde` launches a development IntelliJ IDEA sandbox with the plugin and its LSP4IJ dependency.
+`runIde` launches a development IntelliJ IDEA (Ultimate) sandbox with the plugin. The first run downloads the IntelliJ IDEA distribution, which is large. No license is needed for the LSP API in the sandbox.
+
+Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Settings` inside the sandbox to log LSP traffic.
 
 ## Testing Strategy
 
@@ -33,7 +35,7 @@ Functional tests should use a disk-backed IntelliJ fixture. LSP server implement
 Each LSP test should:
 
 1. Create a temporary Go module.
-2. Start the server.
+2. Start the server through `LspServerManager`.
 3. Wait asynchronously for initialization.
 4. Assert one or more LSP results.
 5. Stop the server during teardown.

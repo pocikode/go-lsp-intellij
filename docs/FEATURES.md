@@ -2,42 +2,31 @@
 
 ## Available Foundation
 
-- `.go` LSP filename mapping
+- `.go` file mapping to the language server
 - IntelliJ TextMate Go syntax highlighting
-- `gopls` stdio process integration
-- LSP4IJ language mapping
+- `gopls` stdio process integration through the IntelliJ LSP API
 - Project-scoped server lifecycle
 - Configurable executable path
 - Configurable server arguments
-- Restart action
-- Go to definition through LSP4IJ, with native Go plugin conflict suppression
-- LSP folding
-- LSP signature help
-- LSP document symbols
+- Missing-`gopls` notification
+- Language-server status bar widget with stop and restart
+- Restart action in the Tools menu
+- Native Go plugin conflict suppression
+- Go to declaration, Cmd/Ctrl+hover link styling, and show usages from a declaration ("Go to Declaration or Usages"), handled by the plugin through gopls definition/references
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
 
-## Core Editor Target
+## Editor Features From The Platform LSP Client
 
-These are the first user-facing capabilities to validate and document as the integration matures:
+The IntelliJ LSP client implements these capabilities itself; the plugin only declares the server. Availability depends on the IDE version:
 
-- Diagnostics
-- Completion
-- Hover documentation
-- Go to definition
-- Go to type definition
-- Find references
-- Rename
-- Code actions and quick fixes
-- Whole-file and range formatting through LSP4IJ, plus whole-file `gofmt` format-on-save
-- Import organization on save through optional `goimports`
-- Semantic tokens (provided by LSP4IJ when supported by `gopls`)
-- Folding
-- Document symbols and structure view
-- Signature help
-- Call hierarchy
+| IDE version | Capabilities |
+|-------------|--------------|
+| 2025.2 | Diagnostics, quick-fixes, completion, go to type declaration, hover, intention actions and code actions, whole-file formatting, find usages, semantic highlighting, execute command, workspace edits, document links, pull diagnostics, inlay hints, folding |
+| 2025.3 | Adds server-initiated progress, highlight usages in file, go to symbol, structure view and breadcrumbs, signature help, selection range, call hierarchy, type hierarchy |
+| 2026.1 | Adds range formatting, code lens, optimize imports, rename, on-type formatting |
 
-Most of these are LSP capabilities. Availability depends on the `gopls` version, LSP4IJ version, and IntelliJ platform version.
+Each capability also requires `gopls` to advertise it. The platform's go-to-declaration support is disabled for Go on purpose; the plugin implements navigation itself (see the foundation list above).
 
 ## Not Yet Implemented
 
@@ -49,5 +38,5 @@ Most of these are LSP capabilities. Availability depends on the `gopls` version,
 - Coverage
 - Delve debugging
 - Go-specific native inspections
-- Native Go refactorings beyond LSP rename/code actions
-- GoLand conflict handling
+- Native Go refactorings beyond what the platform LSP client provides
+- GoLand conflict handling beyond skipping the server when the native plugin is loaded

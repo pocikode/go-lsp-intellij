@@ -18,20 +18,21 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity(providers.gradleProperty("platformVersion").get())
-        plugin("com.redhat.devtools.lsp4ij:${providers.gradleProperty("lsp4ijVersion").get()}@nightly")
+        // The IntelliJ LSP API ships only in the IntelliJ IDEA (Ultimate) distribution, so the
+        // plugin is compiled against IU. Since 2025.2 the API works without a paid license.
+        intellijIdeaUltimate(providers.gradleProperty("platformVersion").get())
         testFramework(TestFrameworkType.Platform)
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
 }
 
 tasks.withType<JavaCompile>().configureEach {
-    options.release.set(17)
+    options.release.set(21)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
         languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
     }
@@ -44,7 +45,7 @@ intellijPlatform {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = provider { null }
         }
-        description = "Free Go language support for IntelliJ IDEA powered by the installed gopls language server."
+        description = "Free Go language support for IntelliJ IDEA powered by the installed gopls language server and the IntelliJ LSP API."
     }
     pluginVerification {
         ides {
