@@ -3,7 +3,7 @@
 ## Phase 1: Core Editor
 
 - Stabilize LSP4IJ integration.
-- Validate diagnostics, completion, hover, navigation, references, rename, formatting, imports, symbols, and code actions.
+- Validate diagnostics, completion, hover, navigation, references, rename, imports, symbols, code actions, and format-on-save.
 - Add disk-backed integration tests.
 - Improve missing-server notifications.
 

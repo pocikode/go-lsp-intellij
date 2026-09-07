@@ -14,6 +14,7 @@
 - LSP folding
 - LSP signature help
 - LSP document symbols
+- Optional Go format-on-save through `gopls`, configurable under Actions on Save
 
 ## Core Editor Target
 
@@ -27,7 +28,7 @@ These are the first user-facing capabilities to validate and document as the int
 - Find references
 - Rename
 - Code actions and quick fixes
-- Whole-file and range formatting
+- Whole-file and range formatting, including optional format-on-save
 - Organize imports
 - Semantic tokens (provided by LSP4IJ when supported by `gopls`)
 - Folding

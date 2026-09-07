@@ -8,8 +8,13 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="dev.go_lsp.intellij.GoLspSettingsState" />
+        <projectService serviceImplementation="dev.go_lsp.intellij.GoFormatOnSaveState" />
         <applicationConfigurable parentId="tools" displayName="Go LSP"
                                  instance="dev.go_lsp.intellij.GoLspConfigurable" />
+        <actionOnSaveInfoProvider id="GoLspFormatOnSaveInfoProvider"
+                                  implementation="dev.go_lsp.intellij.GoFormatOnSaveInfoProvider" />
+        <actionOnSave id="GoLspFormatOnSave"
+                      implementation="dev.go_lsp.intellij.GoFormatOnSave" />
         <notificationGroup id="Go LSP" displayType="BALLOON" />
     </extensions>
 

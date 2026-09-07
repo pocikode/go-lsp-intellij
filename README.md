@@ -19,8 +19,9 @@ The first milestone is the server integration foundation:
 - Persistent executable and argument settings
 - Restart action
 - LSP-backed folding, signature help, document symbols, and go-to-definition
+- Optional Go format-on-save through `gopls`
 
-The remaining core editor capabilities, including diagnostics, completion, hover, references, rename, formatting, and code actions, come from the LSP4IJ and `gopls` integration and are being validated against the selected platform baseline.
+The remaining core editor capabilities, including diagnostics, completion, hover, references, rename, and code actions, come from the LSP4IJ and `gopls` integration and are being validated against the selected platform baseline.
 
 ## Requirements
 
@@ -58,6 +59,8 @@ Open `Settings | Tools | Go LSP`:
 - Arguments default to `serve`.
 
 LSP4IJ also provides its own language-server console and tracing controls.
+
+To format Go files automatically when saving, enable `Reformat Go files with gopls` in `Settings | Tools | Actions on Save`. The option uses `gopls`'s LSP formatting request and only applies to `.go` files.
 
 ## Product Compatibility
 

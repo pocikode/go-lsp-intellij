@@ -27,6 +27,8 @@ Go toolchain and workspace
 - `GoLspSettingsState`: persists user configuration at application scope.
 - `GoLspConfigurable`: exposes executable and command arguments in Settings.
 - `RestartGoLspAction`: stops and starts the project server.
+- `GoFormatOnSave`: registers the project-level Actions on Save integration and runs IntelliJ's reformat pipeline for `.go` documents; LSP4IJ delegates the formatter request to `gopls`.
+- `GoFormatOnSaveState`: persists the format-on-save choice per project.
 
 ## Process Lifecycle
 
@@ -37,6 +39,8 @@ gopls serve
 ```
 
 The working directory is the IntelliJ project base path. LSP4IJ handles JSON-RPC transport, document synchronization, server capabilities, diagnostics, and standard feature adapters.
+
+When `Reformat Go files with gopls` is enabled under `Settings | Tools | Actions on Save`, the save action runs the standard IntelliJ reformat pipeline for Go documents. LSP4IJ's registered formatting service translates that operation into `textDocument/formatting` and applies the edits returned by `gopls` before the document is saved.
 
 ## Why There Is No Native Go PSI
 
