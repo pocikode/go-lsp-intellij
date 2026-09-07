@@ -2,13 +2,15 @@
 
 ## Available Foundation
 
-- `.go` file registration
+- `.go` LSP filename mapping
+- IntelliJ TextMate Go syntax highlighting
 - `gopls` stdio process integration
 - LSP4IJ language mapping
 - Project-scoped server lifecycle
 - Configurable executable path
 - Configurable server arguments
 - Restart action
+- Go to definition through LSP4IJ, with native Go plugin conflict suppression
 - LSP folding
 - LSP signature help
 - LSP document symbols
@@ -27,7 +29,7 @@ These are the first user-facing capabilities to validate and document as the int
 - Code actions and quick fixes
 - Whole-file and range formatting
 - Organize imports
-- Semantic tokens
+- Semantic tokens (provided by LSP4IJ when supported by `gopls`)
 - Folding
 - Document symbols and structure view
 - Signature help

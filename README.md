@@ -12,15 +12,15 @@ This project is an LSP-based alternative for IntelliJ IDEA users who want modern
 
 The first milestone is the server integration foundation:
 
-- Go file type registration
+- Go filename mapping with IntelliJ's bundled TextMate syntax highlighting
 - Installed `gopls` discovery
 - Project-scoped `gopls` process startup over stdio
 - LSP4IJ language mapping
 - Persistent executable and argument settings
 - Restart action
-- LSP-backed folding, signature help, and document symbols
+- LSP-backed folding, signature help, document symbols, and go-to-definition
 
-The remaining core editor capabilities, including diagnostics, completion, navigation, rename, formatting, and code actions, come from the LSP4IJ and `gopls` integration and are being validated against the selected platform baseline.
+The remaining core editor capabilities, including diagnostics, completion, hover, references, rename, formatting, and code actions, come from the LSP4IJ and `gopls` integration and are being validated against the selected platform baseline.
 
 ## Requirements
 

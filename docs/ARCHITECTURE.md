@@ -21,8 +21,7 @@ Go toolchain and workspace
 
 ## Main Components
 
-- `GoLanguage`: identifies Go documents to IntelliJ and LSP4IJ.
-- `GoFileType`: registers `.go` files.
+- `.go` filename mapping: associates Go files with the LSP server without replacing IntelliJ's TextMate file handling.
 - `GoLanguageServerFactory`: resolves the executable and creates an LSP4IJ process connection.
 - `GoLspDiscovery`: searches configured and conventional executable locations.
 - `GoLspSettingsState`: persists user configuration at application scope.
@@ -31,7 +30,7 @@ Go toolchain and workspace
 
 ## Process Lifecycle
 
-LSP4IJ creates a server when a mapped Go file requires it. The factory builds a command equivalent to:
+LSP4IJ creates a server when a mapped Go file requires it. The filename mapping preserves the IntelliJ TextMate Go grammar while LSP4IJ provides the navigation adapters. The factory builds a command equivalent to:
 
 ```text
 gopls serve

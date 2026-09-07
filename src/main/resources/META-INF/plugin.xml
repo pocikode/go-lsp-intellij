@@ -7,9 +7,6 @@
     <depends>com.redhat.devtools.lsp4ij</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <fileType name="Go" language="Go" extensions="go" fieldName="INSTANCE"
-                  implementationClass="dev.go_lsp.intellij.GoFileType" />
-        <lang.commenter language="Go" implementationClass="dev.go_lsp.intellij.GoCommenter" />
         <applicationService serviceImplementation="dev.go_lsp.intellij.GoLspSettingsState" />
         <applicationConfigurable parentId="tools" displayName="Go LSP"
                                  instance="dev.go_lsp.intellij.GoLspConfigurable" />
@@ -23,13 +20,15 @@
                 <p>Go language support backed by the installed <code>gopls</code> language server.</p>
             ]]></description>
         </server>
-        <languageMapping language="Go" serverId="go-lsp" languageId="go" />
-        <lang.foldingBuilder language="Go"
+        <!-- Keep the bundled TextMate Go grammar active; a custom LanguageFileType would disable it. -->
+        <fileNamePatternMapping patterns="*.go" serverId="go-lsp" languageId="go"
+                                documentMatcher="dev.go_lsp.intellij.GoDocumentMatcher" />
+        <lang.foldingBuilder language="textmate"
                              implementationClass="com.redhat.devtools.lsp4ij.features.foldingRange.LSPFoldingRangeBuilder"
                              order="first" />
-        <codeInsight.parameterInfo language="Go"
+        <codeInsight.parameterInfo language="textmate"
                                    implementationClass="com.redhat.devtools.lsp4ij.features.signatureHelp.LSPParameterInfoHandler" />
-        <lang.psiStructureViewFactory language="Go"
+        <lang.psiStructureViewFactory language="textmate"
                                       implementationClass="com.redhat.devtools.lsp4ij.features.documentSymbol.LSPDocumentSymbolStructureViewFactory" />
     </extensions>
 

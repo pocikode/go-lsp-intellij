@@ -14,7 +14,7 @@ The LSP4IJ version is pinned because nightly versions can change independently o
 
 ## IntelliJ Editions
 
-LSP4IJ is used instead of the official IntelliJ LSP API because the official API is not available to IntelliJ IDEA Community. The plugin should remain free of `com.intellij.modules.ultimate` and `com.intellij.modules.lsp` dependencies while Community support is a goal.
+LSP4IJ is used instead of the official IntelliJ LSP API because the official API is not available to IntelliJ IDEA Community. The plugin should remain free of `com.intellij.modules.ultimate` and `com.intellij.modules.lsp` dependencies while Community support is a goal. Go files are associated by filename mapping so the bundled TextMate Go grammar remains active.
 
 ## GoLand
 
@@ -33,3 +33,4 @@ Future managed installation must support selecting a Go version without changing
 - Large workspaces can take time to load and analyze.
 - A missing or non-executable `gopls` path prevents server startup.
 - Multiple Go installations can make automatic discovery ambiguous.
+- When the native Go plugin is installed, the Go LSP filename mapping is skipped so native and LSP navigation providers cannot return duplicate targets. GoLand coexistence remains unsupported beyond this guard.
