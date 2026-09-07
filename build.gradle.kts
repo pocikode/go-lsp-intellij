@@ -24,6 +24,10 @@ dependencies {
         testFramework(TestFrameworkType.Platform)
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    // Gradle 9 no longer puts the launcher on the test runtime classpath implicitly, and the
+    // platform test framework's session listener still reaches for the JUnit 3 base class.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("junit:junit:4.13.2")
 }
 
 tasks.withType<JavaCompile>().configureEach {

@@ -28,7 +28,7 @@ Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Sett
 
 ## Testing Strategy
 
-Unit tests should cover executable discovery, settings persistence, command construction, and argument handling without launching an IDE.
+`GoLspSemanticTokensTest` covers the semantic token colour mapping as a plain JUnit 5 test; every case in it is a token/modifier pair `gopls` actually emits. Unit tests should likewise cover executable discovery, settings persistence, command construction, and argument handling without launching an IDE.
 
 Functional tests should use a disk-backed IntelliJ fixture. LSP server implementations may require real filesystem paths and file watchers; in-memory light fixtures are not sufficient for all lifecycle cases.
 

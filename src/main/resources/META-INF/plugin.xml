@@ -24,5 +24,28 @@
         <actionOnSave id="GoLspFormatOnSave"
                        implementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSave" />
         <notificationGroup id="Go LSP" displayType="BALLOON" />
+        <!-- Go files are handled by the bundled TextMate grammar, whose icon does not look like
+             GoLand's; this restores a Go icon in the project view and editor tabs. -->
+        <fileIconProvider implementation="com.github.pocikode.go_lsp_intellij.GoLspFileIconProvider" />
+        <!--
+            GoLand's Go colour keys carry explicit values for these two scheme families that no
+            fallback key reproduces; without them package qualifiers and type references come out
+            plain here while GoLand shows them olive and teal. A scheme that names a key itself
+            still wins over these defaults. See GoLspSemanticTokens.
+        -->
+        <additionalTextAttributes scheme="Darcula" file="colorSchemes/GoLspDarcula.xml" />
+        <additionalTextAttributes scheme="IntelliJ Light" file="colorSchemes/GoLspLight.xml" />
+        <!--
+            Struct tag keys, which GoLand paints apart from the rest of the raw string. Registered
+            for the TextMate language because that is what claims .go files without the native Go
+            plugin; with that plugin loaded the files are not TextMate and this never runs.
+        -->
+        <annotator language="textmate"
+                   implementationClass="com.github.pocikode.go_lsp_intellij.GoLspStructTagAnnotator" />
+        <!--
+            Makes *_test.go a member of the platform's built-in "Tests" scope, which File Colors
+            already paints green; Go has no test source root for the platform to find by itself.
+        -->
+        <testSourcesFilter implementation="com.github.pocikode.go_lsp_intellij.GoLspTestSourcesFilter" />
     </extensions>
 </idea-plugin>

@@ -12,7 +12,9 @@ This project is an LSP-based alternative for IntelliJ IDEA users who want modern
 
 The first milestone is the server integration foundation:
 
-- Go filename mapping with IntelliJ's bundled TextMate syntax highlighting
+- Go filename mapping with IntelliJ's bundled TextMate syntax highlighting, layered with `gopls` semantic tokens mapped to GoLand's colour keys so one theme looks the same in both IDEs
+- Go icons for `.go` files and the `go.mod`, `go.sum` and `go.work` manifests
+- `*_test.go` marked as test sources, so the project view tints them green like GoLand
 - Installed `gopls` discovery, with a notification when it is missing
 - Project-scoped `gopls` process startup over stdio
 - Persistent executable and argument settings

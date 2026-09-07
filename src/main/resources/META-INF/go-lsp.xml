@@ -14,6 +14,13 @@
         <psi.declarationProvider implementation="com.github.pocikode.go_lsp_intellij.GoLspDeclarationProvider" />
         <searcher forClass="com.intellij.find.usages.api.UsageSearchParameters"
                   implementationClass="com.github.pocikode.go_lsp_intellij.GoLspUsageSearcher" />
+        <!--
+            gopls reports an import path as a `namespace` token, indistinguishable from a package
+            qualifier, so the semantic token mapping colours it as a package and GoLand does not.
+            This drops that one highlight by position; it is registered here because it only has
+            anything to filter while the LSP client is running.
+        -->
+        <daemon.highlightInfoFilter implementation="com.github.pocikode.go_lsp_intellij.GoLspImportPathFilter" />
     </extensions>
 
     <actions>

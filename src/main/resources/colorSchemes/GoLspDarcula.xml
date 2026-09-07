@@ -1,0 +1,54 @@
+<?xml version='1.0'?>
+<!--
+  Colours for the Go attribute keys that GoLand gives an explicit value in the Darcula family,
+  so a scheme that does not mention Go still paints Go the way GoLand does. Keys whose colour
+  GoLand leaves to a fallback are absent here on purpose: their fallback already agrees.
+
+  A scheme that names one of these keys itself wins over this file, which is what keeps a
+  GoLand-tuned theme in charge of its own choices.
+-->
+<list>
+  <option name="GO_PACKAGE">
+    <value>
+      <option name="FOREGROUND" value="afbf7e" deuteranopia="7393bf" protanopia="7393bf"/>
+      <option name="FONT_TYPE" value="0" deuteranopia="3" protanopia="3"/>
+    </value>
+  </option>
+  <option name="GO_TYPE_REFERENCE">
+    <value>
+      <option name="FOREGROUND" value="6fafbd" deuteranopia="a9b7c6" protanopia="a9b7c6"/>
+      <option name="FONT_TYPE" value="0" deuteranopia="2" protanopia="2"/>
+    </value>
+  </option>
+  <option name="GO_BUILTIN_TYPE_REFERENCE">
+    <value>
+      <option name="FOREGROUND" value="cc7832" deuteranopia="597cc2" protanopia="597cc2"/>
+    </value>
+  </option>
+  <option name="GO_BUILTIN_FUNCTION_CALL">
+    <value>
+      <option name="FOREGROUND" value="cc7832" deuteranopia="597cc2" protanopia="597cc2"/>
+    </value>
+  </option>
+  <option name="GO_BUILTIN_CONSTANT">
+    <value>
+      <option name="FOREGROUND" value="cc7832" deuteranopia="597cc2" protanopia="597cc2"/>
+    </value>
+  </option>
+  <option name="GO_BUILTIN_VARIABLE">
+    <value>
+      <option name="FOREGROUND" value="cc7832" deuteranopia="597cc2" protanopia="597cc2"/>
+    </value>
+  </option>
+  <option name="GO_LOCAL_FUNCTION_CALL">
+    <value>
+      <option name="FOREGROUND" value="b09d79" deuteranopia="bf9e5c" protanopia="bf9e5c"/>
+    </value>
+  </option>
+  <option name="GO_SHADOWING_VARIABLE">
+    <value>
+      <option name="FOREGROUND" value="7dbda2" deuteranopia="a9b7c6" protanopia="a9b7c6"/>
+      <option name="FONT_TYPE" value="0" deuteranopia="3" protanopia="3"/>
+    </value>
+  </option>
+</list>
