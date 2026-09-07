@@ -10,7 +10,12 @@ import com.intellij.platform.lsp.api.customization.LspDocumentLinkDisabled
 import com.intellij.platform.lsp.api.customization.LspGoToDefinitionCustomizer
 import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
 import com.intellij.platform.lsp.api.customization.LspSemanticTokensCustomizer
+import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
+import org.eclipse.lsp4j.DocumentSymbolCapabilities
+import org.eclipse.lsp4j.SymbolCapabilities
+import org.eclipse.lsp4j.TextDocumentClientCapabilities
+import org.eclipse.lsp4j.WorkspaceClientCapabilities
 
 /** Describes one project-wide `gopls` process for the IntelliJ LSP API. */
 class GoLspServerDescriptor(project: Project, private val executable: String) :
@@ -36,6 +41,25 @@ class GoLspServerDescriptor(project: Project, private val executable: String) :
         override val semanticTokensCustomizer: LspSemanticTokensCustomizer = GoLspSemanticTokens
         override val documentLinkCustomizer: LspDocumentLinkCustomizer = LspDocumentLinkDisabled
     }
+
+    /**
+     * The platform client asks for neither document symbols nor workspace symbols, and `gopls`
+     * tailors both answers to what the client claims to support: without
+     * `hierarchicalDocumentSymbolSupport` it replies with a flat list that carries no signatures
+     * and no struct or interface members, which is exactly what the code vision above a
+     * declaration and "Implement interface" are built from. See [GoLspSymbolRequests].
+     */
+    override val clientCapabilities: ClientCapabilities
+        get() = super.clientCapabilities.also { capabilities ->
+            val textDocument = capabilities.textDocument
+                ?: TextDocumentClientCapabilities().also { capabilities.textDocument = it }
+            textDocument.documentSymbol = DocumentSymbolCapabilities().apply {
+                hierarchicalDocumentSymbolSupport = true
+            }
+            val workspace = capabilities.workspace
+                ?: WorkspaceClientCapabilities().also { capabilities.workspace = it }
+            workspace.symbol = SymbolCapabilities()
+        }
 
     /**
      * `gopls` reads its settings at startup from the initialization options and afterwards through

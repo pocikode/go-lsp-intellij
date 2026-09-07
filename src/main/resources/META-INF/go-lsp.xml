@@ -21,6 +21,19 @@
             anything to filter while the LSP client is running.
         -->
         <daemon.highlightInfoFilter implementation="com.github.pocikode.go_lsp_intellij.GoLspImportPathFilter" />
+        <!--
+            The code vision above a Go declaration, which GoLand shows and the platform cannot infer
+            here: the bundled TextMate grammar that claims .go files parses each one into a single
+            PSI leaf, so the declarations come from `gopls` instead (see GoLspCodeVisionService).
+            The author is ours for the same reason - the platform's own code-author vision needs a
+            PSI element per declaration to hang itself on, and there is none.
+        -->
+        <codeInsight.daemonBoundCodeVisionProvider
+            implementation="com.github.pocikode.go_lsp_intellij.GoLspUsagesCodeVisionProvider" />
+        <codeInsight.daemonBoundCodeVisionProvider
+            implementation="com.github.pocikode.go_lsp_intellij.GoLspImplementInterfaceCodeVisionProvider" />
+        <codeInsight.daemonBoundCodeVisionProvider
+            implementation="com.github.pocikode.go_lsp_intellij.GoLspAuthorCodeVisionProvider" />
     </extensions>
 
     <actions>
