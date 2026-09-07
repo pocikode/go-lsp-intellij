@@ -1,4 +1,4 @@
-package dev.go_lsp.intellij
+package com.github.pocikode.go_lsp_intellij
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
