@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.github.pocikode.go_lsp_intellij</id>
     <name>Go LSP</name>
-    <vendor url="https://github.com/agus/go-lsp-intellij">Go LSP contributors</vendor>
+    <vendor url="https://github.com/pocikode/go-lsp-intellij">Go LSP contributors</vendor>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.redhat.devtools.lsp4ij</depends>

@@ -4,7 +4,7 @@
 
 - This is an IntelliJ IDEA Community plugin scaffold, not a GoLand replacement yet.
 - The implemented foundation is Go filename mapping with TextMate syntax highlighting, installed `gopls` discovery, LSP4IJ stdio startup, persistent `gopls` settings, restart action, native Go plugin conflict suppression for definition navigation, folding, signature help, and document symbols.
-- Diagnostics, completion, hover, references, rename, formatting, code actions, run/test support, debugging, automatic `gopls` download, and Go-version selection are roadmap work, not verified current features.
+- Diagnostics, completion, hover, references, rename, code actions, run/test support, debugging, automatic `gopls` download, and Go-version selection are roadmap work, not verified current features. Format-on-save is implemented through local `gofmt`, with optional `goimports` import organization.
 - Read `docs/FEATURES.md` and `docs/ROADMAP.md` before describing or extending feature coverage; update those files when status changes.
 
 ## Build
@@ -24,7 +24,7 @@
 
 - Keep IntelliJ integration in `src/main/kotlin/dev/go_lsp/intellij` and plugin registrations in `src/main/resources/META-INF/plugin.xml`.
 - `GoLanguageServerFactory` owns LSP4IJ process creation; `GoLspDiscovery` owns executable lookup; `GoLspSettingsState` owns persisted application settings; do not duplicate these responsibilities.
-- `gopls` owns Go parsing, type checking, diagnostics, completion, navigation, refactoring, and formatting. Do not start a native Go PSI/type-system rewrite unless the roadmap explicitly calls for it.
+- `gopls` owns Go parsing, type checking, diagnostics, completion, navigation, and refactoring. The local Go toolchain owns save formatting through `gofmt` and optional `goimports`; do not start a native Go PSI/type-system rewrite unless the roadmap explicitly calls for it.
 - LSP4IJ is pinned in `gradle.properties`; upgrade it deliberately and rerun `verifyPlugin` because nightly API changes can break the integration.
 - Do not add `com.intellij.modules.ultimate` or the official IntelliJ LSP dependency while IntelliJ IDEA Community remains a target.
 - GoLand already ships native Go support. Do not claim GoLand compatibility or add overlapping integrations without first designing conflict handling.

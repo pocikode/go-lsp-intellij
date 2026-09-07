@@ -11,6 +11,7 @@ class GoLspSettingsState : PersistentStateComponent<GoLspSettingsState> {
     var goplsPath: String = ""
     var goplsArguments: String = "serve"
     var traceLevel: String = "off"
+    var useGoimports: Boolean = true
 
     override fun getState(): GoLspSettingsState = this
 

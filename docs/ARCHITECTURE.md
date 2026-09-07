@@ -2,7 +2,7 @@
 
 ## Boundary
 
-The plugin owns IntelliJ integration and process configuration. `gopls` owns Go parsing, type checking, package loading, diagnostics, completion, navigation, refactoring, and formatting.
+The plugin owns IntelliJ integration and process configuration. `gopls` owns Go parsing, type checking, package loading, diagnostics, completion, navigation, and refactoring. The local Go toolchain owns save formatting through `gofmt` and optional import organization through `goimports`.
 
 ```text
 IntelliJ IDEA
@@ -27,7 +27,7 @@ Go toolchain and workspace
 - `GoLspSettingsState`: persists user configuration at application scope.
 - `GoLspConfigurable`: exposes executable and command arguments in Settings.
 - `RestartGoLspAction`: stops and starts the project server.
-- `GoFormatOnSave`: registers the project-level Actions on Save integration and runs IntelliJ's reformat pipeline for `.go` documents; LSP4IJ delegates the formatter request to `gopls`.
+- `GoFormatOnSave`: registers the project-level Actions on Save integration and formats the current in-memory `.go` document with `gofmt`, then optionally `goimports`.
 - `GoFormatOnSaveState`: persists the format-on-save choice per project.
 
 ## Process Lifecycle
@@ -40,7 +40,7 @@ gopls serve
 
 The working directory is the IntelliJ project base path. LSP4IJ handles JSON-RPC transport, document synchronization, server capabilities, diagnostics, and standard feature adapters.
 
-When `Reformat Go files with gopls` is enabled under `Settings | Tools | Actions on Save`, the save action runs the standard IntelliJ reformat pipeline for Go documents. LSP4IJ's registered formatting service translates that operation into `textDocument/formatting` and applies the edits returned by `gopls` before the document is saved.
+When `Reformat Go files with gofmt` is enabled under `Settings | Tools | Actions on Save`, the save action sends the current in-memory document through `gofmt` and applies its stdout before the platform saves the document. If `Organize imports with goimports` is enabled in `Settings | Tools | Go LSP`, the formatted text is written to a temporary file beside the source file and passed to `goimports`. Running from the source directory lets `goimports` resolve the module, remove unused imports, and group standard-library and third-party imports before the result is copied back. Formatting does not depend on the LSP server being started.
 
 ## Why There Is No Native Go PSI
 

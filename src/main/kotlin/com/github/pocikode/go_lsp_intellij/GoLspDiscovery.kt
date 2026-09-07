@@ -30,5 +30,28 @@ object GoLspDiscovery {
         return candidates.firstOrNull { it.isFile && it.canExecute() }?.absolutePath
     }
 
+    fun findGoTool(name: String): String? {
+        val pathCandidate = System.getenv("PATH")
+            ?.split(File.pathSeparator)
+            ?.asSequence()
+            ?.map { File(it, toolName(name)) }
+            ?.firstOrNull { it.isFile && it.canExecute() }
+        if (pathCandidate != null) return pathCandidate.absolutePath
+
+        val goRoot = System.getenv("GOROOT")
+        val goPath = System.getenv("GOPATH")
+        val candidates = sequenceOf(
+            goRoot?.let { File(it, "bin/${toolName(name)}") },
+            goPath?.let { File(it, "bin/${toolName(name)}") },
+            File(System.getProperty("user.home"), "go/bin/${toolName(name)}"),
+            if (SystemInfo.isMac) File("/opt/homebrew/bin/${toolName(name)}") else null,
+            if (SystemInfo.isLinux) File("/usr/local/bin/${toolName(name)}") else null,
+        ).filterNotNull()
+
+        return candidates.firstOrNull { it.isFile && it.canExecute() }?.absolutePath
+    }
+
     private fun executableName(): String = if (SystemInfo.isWindows) "gopls.exe" else "gopls"
+
+    private fun toolName(name: String): String = if (SystemInfo.isWindows) "$name.exe" else name
 }
