@@ -6,7 +6,7 @@
 - The implemented foundation is Go filename mapping with TextMate syntax highlighting plus GoLand-matched `gopls` semantic token colouring, Go file icons, green test files in the project view, installed `gopls` discovery with a missing-server notification, startup through the IntelliJ LSP API over stdio, persistent `gopls` settings, a status bar widget, a restart action, and native Go plugin conflict suppression.
 - GoLand's code vision above a Go declaration is implemented: a usage count, the last committer, and "Implement interface". All three are built from `gopls` rather than the PSI, and all three are plugin-owned rather than the platform's - see the Architecture section for why that is not a choice.
 - Editor features (diagnostics, completion, hover, navigation, references, code actions, formatting, folding, inlay hints) come from the platform LSP client and `gopls`; which ones exist depends on the IDE version. Run/test support, debugging, automatic `gopls` download, and Go-version selection are roadmap work. Format-on-save is implemented through local `gofmt`, with optional `goimports` import organization.
-- Read `docs/FEATURES.md` and `docs/ROADMAP.md` before describing or extending feature coverage; update those files when status changes.
+- Read `docs/FEATURES.md` and `docs/ROADMAP.md` before describing or extending feature coverage. See the Documentation section for what to update once it has changed.
 
 ## Build
 
@@ -44,9 +44,29 @@
 
 ## Documentation
 
-- `README.md` is the user-facing setup and status summary.
-- `docs/ARCHITECTURE.md` describes ownership boundaries and lifecycle.
-- `docs/COMPATIBILITY.md` records supported platform/product constraints and risks.
-- `docs/DEVELOPMENT.md` records setup, commands, and testing expectations.
-- `docs/FEATURES.md` is the current feature matrix; distinguish implemented foundation, target capabilities, and not-yet-implemented work.
-- `docs/ROADMAP.md` records future Core Plus, managed toolchain, and GoLand parity work.
+Update the documentation as part of finishing a change, not as a separate task afterwards. A change
+that alters what the plugin does, how it does it, or what it depends on is not done until the files
+below say so. Keep it in the same commit as the code where the two are one change; a documentation
+pass over work already committed is its own commit.
+
+- `README.md` is the user-facing setup and status summary. Touch it for anything a user can see,
+  as a status bullet and, when it needs explaining, a section of its own.
+- `docs/FEATURES.md` is the current feature matrix; distinguish implemented foundation, target
+  capabilities, and not-yet-implemented work. Every user-visible change lands here too, including
+  moving a line out of "not yet implemented".
+- `docs/ARCHITECTURE.md` describes ownership boundaries and lifecycle. Touch it for a new component
+  or a responsibility moving between components.
+- `docs/COMPATIBILITY.md` records supported platform/product constraints and risks. Touch it for a
+  new platform API, a new external tool, or a new constraint or risk.
+- `docs/DEVELOPMENT.md` records setup, commands, and testing expectations. Touch it for a new test,
+  a new command, or a technique worth repeating.
+- `docs/ROADMAP.md` records future Core Plus, managed toolchain, and GoLand parity work. Anything
+  deliberately left for later belongs here rather than in a TODO in the code.
+- This file carries the invariants a future change could undo without noticing, each stated as a
+  rule with its reason attached. That is what most of the Architecture section is.
+
+Record why, not just what. The reason a thing is done a particular way - a platform API that behaves
+differently than it reads, a server that answers differently depending on what the client declares -
+is the part that cannot be recovered from the code later, and is what these files are for. Prefer
+correcting an existing sentence over appending a new one; a doc that accumulates only additions
+stops being read.
