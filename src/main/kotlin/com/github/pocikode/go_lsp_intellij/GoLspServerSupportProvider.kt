@@ -12,10 +12,10 @@ import com.intellij.platform.lsp.api.LspServerSupportProvider.LspServerStarter
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
 import icons.GoLspIcons
 
-/** Starts `gopls` through the IntelliJ LSP API when a Go file is opened. */
+/** Starts `gopls` through the IntelliJ LSP API when a Go source or module file is opened. */
 class GoLspServerSupportProvider : LspServerSupportProvider {
     override fun fileOpened(project: Project, file: VirtualFile, serverStarter: LspServerStarter) {
-        if (!GoLspSupport.isGoFile(file) || GoLspSupport.isNativeGoPluginLoaded()) return
+        if (!GoLspSupport.isGoLspFile(file) || GoLspSupport.isNativeGoPluginLoaded()) return
 
         val executable = GoLspDiscovery.findExecutable()
         if (executable == null) {

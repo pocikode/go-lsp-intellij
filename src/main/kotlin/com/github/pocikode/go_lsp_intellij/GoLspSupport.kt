@@ -11,6 +11,9 @@ object GoLspSupport {
 
     fun isGoFile(file: VirtualFile): Boolean = !file.isDirectory && file.extension == "go"
 
+    /** Files for which gopls provides editor features rather than only workspace change tracking. */
+    fun isGoLspFile(file: VirtualFile): Boolean = isGoFile(file) || isGoModuleLanguageFile(file)
+
     /** A Go file currently owned by the bundled TextMate language rather than the native Go plugin. */
     fun isGoTextMateFile(file: PsiFile): Boolean =
         !isNativeGoPluginLoaded() &&
@@ -29,7 +32,11 @@ object GoLspSupport {
     /** The Go module and workspace manifests, which GoLand shows with their own icon. */
     fun isGoModuleFile(file: VirtualFile): Boolean = !file.isDirectory && file.name in MODULE_FILE_NAMES
 
+    fun isGoModuleLanguageFile(file: VirtualFile): Boolean =
+        !file.isDirectory && file.name in MODULE_LANGUAGE_FILE_NAMES
+
     private val MODULE_FILE_NAMES = setOf("go.mod", "go.sum", "go.work", "go.work.sum")
+    private val MODULE_LANGUAGE_FILE_NAMES = setOf("go.mod", "go.work")
 
     /**
      * True only when JetBrains' native Go plugin is actually loaded. A plugin that is installed but

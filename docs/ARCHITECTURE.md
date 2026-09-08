@@ -22,7 +22,7 @@ Go toolchain and workspace
 ## Main Components
 
 - `GoLspServerSupportProvider`: the `platform.lsp.serverSupportProvider` extension. When a `.go` file is opened and the native Go plugin is not loaded, it resolves `gopls` and asks the platform to start one project-wide server. It also contributes the status bar widget item and notifies once per project when `gopls` is missing.
-- `GoLspServerDescriptor`: a `ProjectWideLspServerDescriptor` that maps `.go` files to the server, reports the LSP language id `go`, builds the `gopls` command line from settings, answers both the initialization options and `workspace/configuration` with the `gopls` settings map that enables semantic tokens, turns off the platform client's document links so import paths are not underlined as web links, and declares the `documentSymbol` and `workspace/symbol` client capabilities the platform omits. `gopls` tailors both answers to what the client claims: without `hierarchicalDocumentSymbolSupport` it returns a flat symbol list with no signatures and no members, which is what the code vision is built from.
+- `GoLspServerDescriptor`: a `ProjectWideLspServerDescriptor` that maps `.go`, `go.mod`, and `go.work` files to the server with their LSP language identifiers, builds the `gopls` command line from settings, answers both the initialization options and `workspace/configuration` with the `gopls` settings map that enables semantic tokens and imported-vulnerability diagnostics, and declares the `documentSymbol` and `workspace/symbol` client capabilities the platform omits. Document links remain enabled for module-file navigation; `GoLspImportPathFilter` hides their presentation in Go source. `gopls` tailors symbol answers to what the client claims: without `hierarchicalDocumentSymbolSupport` it returns a flat symbol list with no signatures and no members, which is what the code vision is built from.
 - `GoLspSemanticTokens`: maps `gopls` semantic tokens onto GoLand's own attribute keys by external name, so a GoLand-tuned scheme is honoured and the colours in `colorSchemes/` supply GoLand's defaults otherwise. Returns null for lexical tokens so the TextMate grammar keeps painting them.
 - `GoLspImportPathFilter`: drops the package-coloured highlight `gopls` puts on an import path, which it reports with the same token type as a package qualifier.
 - `GoStructTags` and `GoLspStructTagAnnotator`: find the `key:` of each struct tag from the file text and paint it apart from the rest of the raw string, as GoLand does. `GoStructTags` is pure text handling and carries the tests.
@@ -39,6 +39,16 @@ Go toolchain and workspace
   PSI lexer is empty, so exact TODO items, the Current File view, and navigation need this Go-only
   lexer. The platform still owns configured patterns, filtering, highlighting, and the tool window.
 - `GoLspFileIconProvider`: gives `.go` and the Go module files a Go icon in the project view and editor tabs, standing down when the native Go plugin is loaded.
+- `GoModuleLanguage`, `GoModuleFileTypeOverrider`, and `GoModuleParserDefinition`: claim the four
+  exact Go module/checksum filenames when the native Go plugin is absent and provide the real
+  language-backed PSI file the platform completion pipeline requires. The parser intentionally
+  builds only a flat token tree; `gopls` remains responsible for manifest semantics.
+- `GoModuleLexer` and `GoModuleSyntaxHighlighter`: provide lexical colours for directives, module
+  paths, versions, checksums, operators, parentheses, and comments across `go.mod`, `go.work`,
+  `go.sum`, and `go.work.sum`.
+- `GoModuleCompletionContributor`: supplies directive and known module/version suggestions for
+  `go.mod` and checksum files. Current `gopls` intentionally returns an empty completion list for
+  `go.mod` and does not accept checksum files; it continues to own `go.work` path completion.
 - `GoLspSupport`: shared Go-file, Go-module-file, and native-plugin checks.
 - `GoLspDiscovery`: searches configured and conventional executable locations.
 - `GoLspSettingsState`: persists user configuration at application scope.
@@ -68,10 +78,19 @@ Go toolchain and workspace
 - `GoTestLineMarkerProvider`: the gutter actions, placed by offset rather than by PSI element; it reads IntelliJ's persisted test state through `RunLineMarkerContributor` so the action reflects the last outcome. See below.
 - `GoTestRunner`: creates or reuses a run configuration for a test, a file or a package and starts it, which is what a `RunConfigurationProducer` would normally do.
 - `GoTestOutputFilter` and `GoTestConsoleFilterProvider`: turn the `foo_test.go:12` in front of a failure into a link to that line.
+- `GoDependencyService`: owns every dependency-inspection and module-mutating Go command. It runs
+  `go list -m -json -u -retracted all`, `go mod graph`, optional `govulncheck -json ./...`, and the
+  explicit tidy/download/vendor/update actions, then refreshes affected VFS paths.
+- `GoDependencyParsers`: pure parsing for concatenated `go list` objects, module-graph lines, and
+  streaming `govulncheck` JSON. Keeping this outside the tool window makes the toolchain boundary
+  unit-testable.
+- `GoDependenciesToolWindowFactory`: renders the service snapshot as module, dependency-tree, and
+  vulnerability views. The project view is not altered because the plugin has no Go SDK/module
+  project model from which to create honest External Libraries nodes.
 
 ## Descriptor Layout
 
-`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, TODO comment ranges, local struct-tag completion and generation, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, module file type/highlighting/local completion, file presentation, TODO comment ranges, local struct-tag completion and generation, format-on-save, the local Go runners, module commands, and the dependency tool window. `go-lsp.xml` registers the server support provider, navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module retain module highlighting, local completion, dependency inspection, and mutation through the installed Go toolchain; semantic editor support for `go.mod` and `go.work` requires the optional LSP module.
 
 The standard platform LSP adapter exposes most `gopls` code actions in the intention menu. Prefer
 that route unless a concrete action is missing. **Fill all fields** is the exception above because

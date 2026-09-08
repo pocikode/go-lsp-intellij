@@ -2,6 +2,7 @@ package com.github.pocikode.go_lsp_intellij
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoFilter
+import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.psi.PsiFile
 
 /**
@@ -19,11 +20,14 @@ import com.intellij.psi.PsiFile
 class GoLspImportPathFilter : HighlightInfoFilter {
 
     override fun accept(highlightInfo: HighlightInfo, file: PsiFile?): Boolean {
-        if (highlightInfo.forcedTextAttributesKey !== GoLspColors.PACKAGE) return true
-
         val psiFile = file ?: return true
         val virtualFile = psiFile.virtualFile ?: return true
         if (!GoLspSupport.isGoFile(virtualFile)) return true
+
+        // Keep document links enabled for go.mod/go.work navigation, but hide them in source files:
+        // gopls turns every import string into an underlined pkg.go.dev link unlike GoLand.
+        if (highlightInfo.forcedTextAttributesKey === CodeInsightColors.INACTIVE_HYPERLINK_ATTRIBUTES) return false
+        if (highlightInfo.forcedTextAttributesKey !== GoLspColors.PACKAGE) return true
 
         val text = psiFile.viewProvider.document?.charsSequence ?: return true
         val start = highlightInfo.startOffset

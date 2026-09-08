@@ -49,6 +49,15 @@ class GoLspSupportTest {
     }
 
     @Test
+    fun `gopls handles source and editable module manifests`() {
+        assertTrue(GoLspSupport.isGoLspFile(file("main.go")))
+        assertTrue(GoLspSupport.isGoLspFile(file("go.mod")))
+        assertTrue(GoLspSupport.isGoLspFile(file("go.work")))
+        assertFalse(GoLspSupport.isGoLspFile(file("go.sum")))
+        assertFalse(GoLspSupport.isGoLspFile(file("go.work.sum")))
+    }
+
+    @Test
     fun `go files are recognised by extension`() {
         assertTrue(GoLspSupport.isGoFile(file("main.go")))
         assertTrue(GoLspSupport.isGoFile(file("promo_test.go")))

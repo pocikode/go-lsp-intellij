@@ -11,6 +11,8 @@
 - Language server: installed `gopls`
 - Program runner: installed `go`, through `go run`
 - Test runner: installed `go`, through `go test -json`
+- Dependency model: installed `go`, through `go list -m` and `go mod graph`
+- Vulnerability details: optional installed `govulncheck`
 
 ## IntelliJ Editions
 
@@ -89,6 +91,30 @@ is the fallback when it is not, so both old and new toolchains behave the same.
 No flag newer than `-json` is passed. `-fullpath` would make failure locations absolute and remove
 the need to resolve a bare filename through the filename index, but it does not exist before Go
 1.21 and an unknown flag makes `go test` fail outright.
+
+## Go Modules And Vulnerabilities
+
+`gopls` supports `go.mod` and `go.work` as LSP documents when they are sent with language ids
+`go.mod` and `go.work`. The plugin enables `vulncheck=Imports`, which reports known vulnerabilities
+affecting imported packages without invoking a separate process on every edit.
+
+Module and checksum files otherwise have no language in IntelliJ and open as plain text. The plugin
+uses `FileTypeOverrider` to assign only the four exact filenames to its lightweight module language,
+standing down when the native Go plugin is loaded. This is also required for ordinary completion:
+IntelliJ's completion pipeline starts from a language-backed PSI file. Current `gopls` returns no
+completion items for `go.mod` and does not handle `go.sum`; local completion therefore covers
+directives and module/version values from the dependency report, while `gopls` owns `go.work`
+completion.
+
+The dependency tool window obtains version and graph data from stable Go commands: `go list -m
+-json -u -retracted all` and `go mod graph`. Retraction and deprecation metadata can require network
+access through the configured Go proxy. Explicit update uses `go get -u ./...`, which may change
+many direct and indirect requirements and is therefore never automatic.
+
+`govulncheck -json ./...` is optional and may download vulnerability data or take significant time;
+it runs only during an explicit dependency refresh. Without it, the `gopls` import-based diagnostics
+remain available. The plugin does not claim a Go SDK or IntelliJ module model, so module-cache and
+SDK packages are not added to External Libraries.
 
 ## API Names
 

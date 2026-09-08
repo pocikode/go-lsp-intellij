@@ -14,8 +14,19 @@
     <depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <fileType name="Go Module Files"
+                  implementationClass="com.github.pocikode.go_lsp_intellij.GoModuleFileType"
+                  fieldName="INSTANCE" language="GoModule" />
+        <fileTypeOverrider implementation="com.github.pocikode.go_lsp_intellij.GoModuleFileTypeOverrider" />
+        <lang.parserDefinition language="GoModule"
+                               implementationClass="com.github.pocikode.go_lsp_intellij.GoModuleParserDefinition" />
+        <lang.syntaxHighlighterFactory language="GoModule"
+                                       implementationClass="com.github.pocikode.go_lsp_intellij.GoModuleSyntaxHighlighterFactory" />
+        <completion.contributor id="GoModuleCompletionContributor" language="GoModule" order="first"
+                                implementationClass="com.github.pocikode.go_lsp_intellij.GoModuleCompletionContributor" />
         <applicationService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoLspSettingsState" />
         <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSaveState" />
+        <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoDependencyService" />
         <applicationConfigurable parentId="tools" displayName="Go LSP"
                                  id="com.github.pocikode.go_lsp_intellij.GoLspConfigurable"
                                  instance="com.github.pocikode.go_lsp_intellij.GoLspConfigurable" />
@@ -93,5 +104,20 @@
                                          implementationClass="com.github.pocikode.go_lsp_intellij.GoMainLineMarkerProvider" />
         <!-- Turns the foo_test.go:12 prefix of a test failure into a link to that line. -->
         <consoleFilterProvider implementation="com.github.pocikode.go_lsp_intellij.GoTestConsoleFilterProvider" />
+        <toolWindow id="Go Dependencies" anchor="right"
+                    factoryClass="com.github.pocikode.go_lsp_intellij.GoDependenciesToolWindowFactory" />
     </extensions>
+
+    <actions>
+        <group id="GoLsp.ModuleActions" text="Go Modules" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last" />
+            <action id="GoLsp.ModTidy" class="com.github.pocikode.go_lsp_intellij.GoModTidyAction" />
+            <action id="GoLsp.ModDownload" class="com.github.pocikode.go_lsp_intellij.GoModDownloadAction" />
+            <action id="GoLsp.ModVendor" class="com.github.pocikode.go_lsp_intellij.GoModVendorAction" />
+            <action id="GoLsp.GetUpdate" class="com.github.pocikode.go_lsp_intellij.GoGetUpdateAction" />
+            <separator />
+            <action id="GoLsp.RefreshDependencies"
+                    class="com.github.pocikode.go_lsp_intellij.RefreshGoDependenciesAction" />
+        </group>
+    </actions>
 </idea-plugin>

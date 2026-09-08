@@ -6,7 +6,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspCustomization
 import com.intellij.platform.lsp.api.customization.LspDocumentLinkCustomizer
-import com.intellij.platform.lsp.api.customization.LspDocumentLinkDisabled
+import com.intellij.platform.lsp.api.customization.LspDocumentLinkSupport
 import com.intellij.platform.lsp.api.customization.LspGoToDefinitionCustomizer
 import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
 import com.intellij.platform.lsp.api.customization.LspSemanticTokensCustomizer
@@ -21,10 +21,14 @@ import org.eclipse.lsp4j.WorkspaceClientCapabilities
 class GoLspServerDescriptor(project: Project, private val executable: String) :
     ProjectWideLspServerDescriptor(project, "Go") {
 
-    override fun isSupportedFile(file: VirtualFile): Boolean = GoLspSupport.isGoFile(file)
+    override fun isSupportedFile(file: VirtualFile): Boolean = GoLspSupport.isGoLspFile(file)
 
-    /** `gopls` expects the LSP language identifier `go`; the default derives it from the file type name. */
-    override fun getLanguageId(file: VirtualFile): String = "go"
+    /** The default derives an unusable identifier from IntelliJ's TextMate or plain-text file type. */
+    override fun getLanguageId(file: VirtualFile): String = when (file.name) {
+        "go.mod" -> "go.mod"
+        "go.work" -> "go.work"
+        else -> "go"
+    }
 
     /**
      * Go-to-definition is handled by [GoLspReferenceProvider] instead of the platform client, whose
@@ -32,14 +36,13 @@ class GoLspServerDescriptor(project: Project, private val executable: String) :
      *
      * Semantic tokens are mapped to GoLand's colour keys by [GoLspSemanticTokens].
      *
-     * Document links are off because `gopls` returns one pkg.go.dev link per import path, which the
-     * platform client paints with the scheme's hyperlink attributes. That underlines and recolours
-     * every import, and GoLand leaves import paths looking like the plain strings they are.
+     * Document links stay enabled for module-file navigation. [GoLspImportPathFilter] hides their
+     * hyperlink presentation in Go source, where imports should remain plain strings.
      */
     override val lspCustomization: LspCustomization = object : LspCustomization() {
         override val goToDefinitionCustomizer: LspGoToDefinitionCustomizer = LspGoToDefinitionDisabled
         override val semanticTokensCustomizer: LspSemanticTokensCustomizer = GoLspSemanticTokens
-        override val documentLinkCustomizer: LspDocumentLinkCustomizer = LspDocumentLinkDisabled
+        override val documentLinkCustomizer: LspDocumentLinkCustomizer = LspDocumentLinkSupport()
     }
 
     /**
@@ -85,6 +88,10 @@ class GoLspServerDescriptor(project: Project, private val executable: String) :
          * call-versus-declaration colouring. The string and number token streams are deliberately
          * left on - [GoLspSemanticTokens] ignores all but the format verbs inside a string.
          */
-        val GOPLS_SETTINGS: Map<String, Any> = mapOf("semanticTokens" to true)
+        val GOPLS_SETTINGS: Map<String, Any> = mapOf(
+            "semanticTokens" to true,
+            // Report vulnerabilities affecting imported packages directly in go.mod diagnostics.
+            "vulncheck" to "Imports",
+        )
     }
 }

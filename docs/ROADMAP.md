@@ -12,9 +12,11 @@
 ## Phase 2: Core Plus
 
 - Go SDK and workspace discovery.
-- `go.mod` and multi-module awareness. The test runner reads the module path out of the nearest
-  `go.mod` to map an import path to a directory; a workspace with several modules is the case to
-  check first.
+- ~~`go.mod`/`go.work` editor support and module maintenance.~~ Done through `gopls`, explicit
+  tidy/download/vendor/update actions, and a dependency report built from the Go toolchain.
+- Full multi-module project-model awareness. The dependency refresh uses the selected manifest or
+  workspace root, while test navigation still reads the nearest `go.mod`; a workspace with several
+  modules remains the case to improve first.
 - ~~Run configurations.~~ Done: a "Go Test" configuration and gutter arrows.
 - ~~`go test`, benchmarks, and subtests.~~ Done: the platform test tree from `go test -json`, with
   subtests nested and rerun-failed. Benchmarks run and are reported, but their results are only

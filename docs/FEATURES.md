@@ -22,6 +22,10 @@
 - Optional import organization through `goimports`
 - Main-function runner: a run arrow on `func main()`, a "Go Run" configuration, and `go run .` output in the platform Run tool window
 - Go test runner: last-result gutter icons for tests and statically named table cases, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`
+- Module-file syntax highlighting for `go.mod`, `go.work`, `go.sum`, and `go.work.sum`, plus local directive/module/version completion
+- `go.mod` and `go.work` LSP support: hover, navigation, diagnostics, quick fixes, `go.work` path completion, and imported-vulnerability diagnostics
+- Go module maintenance actions: `go mod tidy`, `go mod download`, `go mod vendor`, dependency update through `go get -u ./...`, and explicit dependency refresh
+- Go Dependencies tool window: selected and available versions, indirect and replaced modules, deprecation/retraction notices, optional `govulncheck` findings, and a package/version dependency tree
 
 - TODO tool-window items from Go line and block comments, including Project and Current File views,
   custom TODO patterns, highlighting, and source navigation
@@ -164,9 +168,9 @@ Two things the token stream cannot express are handled beside it, by position:
   one flat `string` token and the TextMate grammar scopes it as one `string.quoted.raw.go`, so
   `GoLspStructTagAnnotator` adds the split, over the ranges `GoStructTags` finds.
 
-Document links are turned off. `gopls` returns a pkg.go.dev link for every import path, and the
-platform client paints those with the scheme's hyperlink attributes, so the whole import block came
-out underlined and recoloured; GoLand leaves import paths looking like the plain strings they are.
+Document links remain enabled because `gopls` uses them for dependency and replacement navigation
+in `go.mod`. `GoLspImportPathFilter` removes their hyperlink presentation from Go source, where
+`gopls` also returns a pkg.go.dev link for every import and GoLand leaves the strings plain.
 
 ### Test Files In The Project View
 
@@ -188,8 +192,8 @@ tests, which is the intended meaning for a Go test file.
 - Method receivers arrive as ordinary parameters, so `GO_METHOD_RECEIVER` is never used.
 - Parameter name inlay hints and GoLand's hyperlinking of route strings are separate features, not
   colours; they are absent regardless of the scheme. Code vision is implemented - see above.
-- Ctrl/Cmd+click from an import path to pkg.go.dev is gone with document links; navigation into the
-  package source through `gopls` is unaffected.
+- Ctrl/Cmd+click on a Go import continues to prefer source navigation through `gopls`; module-file
+  dependency and replacement links use document links.
 
 ## Editor Features From The Platform LSP Client
 
@@ -302,6 +306,8 @@ subtest resolves to its string or table field; a dynamic subtest falls back to i
 - Automatic `gopls` download
 - Go version selection
 - Go SDK/project model integration
+- External Libraries/project-tree integration for module cache and SDK packages
+- Automatic dependency synchronization policy; module mutations are explicit actions
 - Coverage
 - Delve debugging
 - Debugging a test (the gutter offers Run only)

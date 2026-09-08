@@ -28,6 +28,8 @@ The first milestone is the server integration foundation:
 - GoLand-style format-on-save through `gofmt`, enabled by default with optional `goimports` import organization
 - A GoLand-style run arrow on `func main()`, backed by an editable "Go Run" configuration and `go run .`
 - GoLand's test runner: gutter icons that retain the last pass/fail state, per-case actions for statically named table tests, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed
+- Syntax highlighting for `go.mod`, `go.work`, `go.sum`, and `go.work.sum`, local directive/module/version completion, and `gopls` hover, navigation, diagnostics, quick fixes, and imported-vulnerability reporting for the editable manifests
+- Go module maintenance actions for tidy, download, vendor, update, and refresh, plus a Go Dependencies tool window with versions, available updates, replacements, deprecations, retractions, vulnerabilities, and the module graph
 
 Signature help, structure view, and call hierarchy are provided by the platform starting with IntelliJ IDEA 2025.3. See [docs/FEATURES.md](docs/FEATURES.md) for the full matrix.
 
@@ -115,6 +117,15 @@ LSP module, where the editor integration cannot run.
 - `gopls` installed and executable
 - `gofmt` available from the Go installation
 
+Install `govulncheck` for the Go Dependencies tool window's call-aware vulnerability table:
+
+```sh
+go install golang.org/x/vuln/cmd/govulncheck@latest
+```
+
+Without it, `gopls` still reports vulnerabilities affecting imported packages as diagnostics in
+`go.mod`; the tool window simply omits its deeper vulnerability table.
+
 The plugin now targets the installed IntelliJ IDEA 2026.2 line. Older IDE builds reject it.
 
 Install `gopls` with:
@@ -130,6 +141,31 @@ go install golang.org/x/tools/cmd/goimports@latest
 ```
 
 The plugin does not download `gopls` yet. Automatic installation and selecting a Go version are planned features.
+
+## Modules And Dependencies
+
+The plugin owns a lightweight module-file language so `go.mod`, `go.work`, `go.sum`, and
+`go.work.sum` receive lexical highlighting for directives, module paths, versions, checksums,
+operators, and comments instead of opening as plain text. Completion suggests manifest directives
+and modules/versions already present in the dependency report. This local completion is especially
+important for `go.mod` and checksum files because `gopls` deliberately returns no completion entries
+for them; `gopls` does supply its own path completion in `go.work`.
+
+Open `go.mod` or `go.work` for `gopls` hover, navigation, diagnostics, and quick fixes. The server is
+configured to report vulnerabilities affecting imported packages in `go.mod`. Checksum files are
+generated toolchain data and are highlighted, but are not sent to `gopls`.
+
+Use `Tools | Go Modules` to run `go mod tidy`, `go mod download`, `go mod vendor`, or `go get -u
+./...`. Each mutating command refreshes IntelliJ's view of `go.mod`, `go.sum`, `go.work`,
+`go.work.sum`, and `vendor`, then reloads the dependency report.
+
+The **Go Dependencies** tool window presents selected and available versions, replacements,
+indirect requirements, deprecation and retraction notices, a package/version dependency tree from
+`go mod graph`, and called/imported vulnerabilities from `govulncheck` when it is installed.
+
+Refresh uses the directory of the selected `go.mod` or `go.work`, then the project root or the first
+module beneath it. This supports ordinary modules and workspace roots without introducing an
+IntelliJ Go SDK or module project model.
 
 ## Development
 
