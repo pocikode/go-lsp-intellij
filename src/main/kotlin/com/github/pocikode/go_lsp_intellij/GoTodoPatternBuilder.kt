@@ -28,9 +28,7 @@ class GoTodoPatternBuilder : IndexPatternBuilder {
         if (tokenType === GO_TODO_BLOCK_COMMENT) 2 else 0
 
     private fun isGoTextMateFile(file: PsiFile): Boolean =
-        !GoLspSupport.isNativeGoPluginLoaded() &&
-            file.fileType.name == "textmate" &&
-            file.virtualFile?.extension == "go"
+        GoLspSupport.isGoTextMateFile(file)
 }
 
 private class GoTodoCommentLexer : LexerBase() {

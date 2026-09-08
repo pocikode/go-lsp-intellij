@@ -27,6 +27,7 @@ Go toolchain and workspace
 - `GoLspImportPathFilter`: drops the package-coloured highlight `gopls` puts on an import path, which it reports with the same token type as a package qualifier.
 - `GoStructTags` and `GoLspStructTagAnnotator`: find the `key:` of each struct tag from the file text and paint it apart from the rest of the raw string, as GoLand does. `GoStructTags` is pure text handling and carries the tests.
 - `GoStructFields`, `GoStructTagEdits`, and `GoAddKeyToTagsIntention`: find the struct enclosing the caret and add a chosen tag key to its eligible fields. This action is local because `gopls` has no tag-generation code action, and text-backed because TextMate provides no field PSI. The pure text edit planner carries the tests.
+- `GoStructTagCompletionContributor`, `GoStructTagCompletionAutoPopup`, and `GoStructTagCompletionConfidence`: recognize empty backticks attached to a field from the original document, open completion after the closing backtick, and insert a built-in tag or invoke the all-fields action. Reading the document is required because completion runs against a synthetic PSI copy and TextMate presents the source as one leaf. The pure `GoStructTagCompletion` context finder carries the tests.
 - `GoFillAllFieldsIntention`: explicitly requests only `refactor.rewrite.fillStruct` over the caret's
   line with an invoked trigger, then delegates lazy action resolution and workspace-edit application
   to `LspIntentionAction`. The generic platform request is automatic and zero-width, which does not
@@ -70,7 +71,7 @@ Go toolchain and workspace
 
 ## Descriptor Layout
 
-`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, TODO comment ranges, the tag-generation intention, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, TODO comment ranges, local struct-tag completion and generation, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
 
 The standard platform LSP adapter exposes most `gopls` code actions in the intention menu. Prefer
 that route unless a concrete action is missing. **Fill all fields** is the exception above because

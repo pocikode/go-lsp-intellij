@@ -55,6 +55,16 @@ class GoStructTagEditsTest {
     }
 
     @Test
+    fun `adds a pair without padding an empty tag`() {
+        val source = "type User struct {\n\tName string ``\n}"
+
+        assertEquals(
+            "type User struct {\n\tName string `json:\"name\"`\n}",
+            apply(source, source.indexOf("``") + 1, "json"),
+        )
+    }
+
+    @Test
     fun `limits edits to the enclosing struct`() {
         val source = """
             type First struct {

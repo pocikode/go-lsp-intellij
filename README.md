@@ -22,7 +22,7 @@ The first milestone is the server integration foundation:
 - LSP-backed diagnostics, completion, hover, go-to-definition, find usages, code actions, formatting, folding, and inlay hints
 - Cmd/Ctrl+hover link styling, Cmd/Ctrl+click navigation, and usages popup on declarations, as in GoLand
 - GoLand's code vision above every Go declaration: a usage count, the last committer, and "Implement interface"
-- Go context actions from the editor lightbulb, including `gopls`'s **Fill all fields** and a plugin-owned **Add key to tags** action for struct fields
+- Go struct-tag completion for `asn1`, `bson`, `json`, `xml`, and `yaml`, plus a plugin-owned **Add tag key to all fields** entry and the matching editor intention
 - TODO tool-window support for `TODO`, `FIXME`, and custom TODO patterns in Go comments, including
   the Project and Current File views and navigation to the matching source
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
@@ -51,6 +51,11 @@ in the background, not during highlighting. Authors come from the file as last s
 unsaved edits keeps the previous names until it is saved again.
 
 ## Context Actions
+
+Typing an empty tag (two backticks) after a struct field opens completion with `asn1`, `bson`,
+`json`, `xml`, and `yaml`. Choosing a key inserts a snake-case value for that field. The first entry,
+**Add tag key to all fields**, asks for a key and applies it to every eligible field in the enclosing
+struct while preserving existing tags.
 
 Press `Alt+Enter` in a Go file to open the normal IntelliJ intention menu. **Fill all fields** asks
 `gopls` for its dedicated struct rewrite: on a struct literal it inserts every missing keyed field

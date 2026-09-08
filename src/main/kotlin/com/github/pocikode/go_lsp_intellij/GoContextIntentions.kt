@@ -23,38 +23,39 @@ class GoAddKeyToTagsIntention : IntentionAction, PriorityAction, Iconable {
     override fun getPriority(): PriorityAction.Priority = PriorityAction.Priority.TOP
 
     override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean =
-        supported(file) && GoStructFields.enclosing(editor.document.charsSequence, editor.caretModel.offset)
+        GoLspSupport.isGoTextMateFile(file) && GoStructFields.enclosing(editor.document.charsSequence, editor.caretModel.offset)
             ?.fields?.isNotEmpty() == true
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile) {
-        val key = Messages.showInputDialog(
-            project,
-            "Tag key to add to every eligible field:",
-            FAMILY_NAME,
-            AllIcons.Nodes.Tag,
-            "json",
-            object : InputValidator {
-                override fun checkInput(inputString: String?): Boolean =
-                    inputString != null && GoStructTagEdits.isValidKey(inputString.trim())
-
-                override fun canClose(inputString: String?): Boolean = checkInput(inputString)
-            },
-        )?.trim() ?: return
-
-        val document = editor.document
-        val edits = GoStructTagEdits.addKey(document.charsSequence, editor.caretModel.offset, key)
-        if (edits.isEmpty()) return
-        WriteCommandAction.runWriteCommandAction(project, FAMILY_NAME, null, {
-            for (edit in edits.sortedByDescending { it.offset }) document.insertString(edit.offset, edit.text)
-        })
+        addKeyToAllFields(project, editor)
     }
 
     override fun startInWriteAction(): Boolean = false
 
-    private companion object {
-        const val FAMILY_NAME = "Add key to tags"
+    companion object {
+        internal const val FAMILY_NAME = "Add key to tags"
+
+        internal fun addKeyToAllFields(project: Project, editor: Editor) {
+            val key = Messages.showInputDialog(
+                project,
+                "Tag key to add to every eligible field:",
+                FAMILY_NAME,
+                AllIcons.Nodes.Tag,
+                "json",
+                object : InputValidator {
+                    override fun checkInput(inputString: String?): Boolean =
+                        inputString != null && GoStructTagEdits.isValidKey(inputString.trim())
+
+                    override fun canClose(inputString: String?): Boolean = checkInput(inputString)
+                },
+            )?.trim() ?: return
+
+            val document = editor.document
+            val edits = GoStructTagEdits.addKey(document.charsSequence, editor.caretModel.offset, key)
+            if (edits.isEmpty()) return
+            WriteCommandAction.runWriteCommandAction(project, FAMILY_NAME, null, {
+                for (edit in edits.sortedByDescending { it.offset }) document.insertString(edit.offset, edit.text)
+            })
+        }
     }
 }
-
-private fun supported(file: PsiFile): Boolean =
-    file.virtualFile?.let(GoLspSupport::isGoFile) == true && !GoLspSupport.isNativeGoPluginLoaded()

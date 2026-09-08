@@ -4,7 +4,7 @@
 
 - Stabilize the IntelliJ LSP API integration.
 - Validate diagnostics, completion, hover, navigation, references, rename, imports, symbols, and format-on-save.
-- Extend context-action coverage beyond `gopls`'s existing code actions and the implemented struct tag generator, prioritizing actions that cannot be expressed through LSP.
+- Extend context-action coverage beyond `gopls`'s existing code actions and the implemented struct-tag generator and completion, prioritizing actions that cannot be expressed through LSP.
 - Extend the code vision where GoLand goes further: an implementations count on interfaces, and "Add method to interface".
 - Add disk-backed integration tests.
 - Offer to install `gopls` from the missing-server notification.

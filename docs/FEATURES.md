@@ -16,6 +16,7 @@
 - Native Go plugin conflict suppression
 - Go to declaration, Cmd/Ctrl+hover link styling, and show usages from a declaration ("Go to Declaration or Usages"), handled by the plugin through gopls definition/references
 - Code vision above every Go declaration: usage count, code author, and "Implement interface"
+- GoLand-style struct-tag completion in empty backticks: **Add tag key to all fields**, `asn1`, `bson`, `json`, `xml`, and `yaml`
 - GoLand-style context actions: `gopls`-backed **Fill all fields** for struct literals and plugin-owned **Add key to tags** for struct declarations
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
@@ -203,6 +204,12 @@ The IntelliJ LSP client implements these capabilities itself; the plugin only de
 Each capability also requires `gopls` to advertise it. The platform's go-to-declaration support is disabled for Go on purpose; the plugin implements navigation itself (see the foundation list above).
 
 ### Go Context Actions
+
+An empty raw-string tag after a struct field opens local completion. The built-in `asn1`, `bson`,
+`json`, `xml`, and `yaml` entries insert `key:"snake_case_field_name"` into that field. **Add tag
+key to all fields** opens the same validated key prompt as the intention below, then updates every
+eligible field in the enclosing struct. This completion is text-backed rather than LSP-backed:
+`gopls` does not provide these entries, and TextMate exposes no field PSI.
 
 `gopls` advertises **Fill all fields** as `refactor.rewrite.fillStruct`. The generic platform action
 request uses an automatic zero-width range, which does not reliably return this lazy rewrite for a

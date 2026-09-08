@@ -3,12 +3,19 @@ package com.github.pocikode.go_lsp_intellij
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiFile
 
 /** Shared rules for deciding whether a file belongs to the Go language server. */
 object GoLspSupport {
     private val NATIVE_GO_PLUGIN_ID: PluginId = PluginId.getId("org.jetbrains.plugins.go")
 
     fun isGoFile(file: VirtualFile): Boolean = !file.isDirectory && file.extension == "go"
+
+    /** A Go file currently owned by the bundled TextMate language rather than the native Go plugin. */
+    fun isGoTextMateFile(file: PsiFile): Boolean =
+        !isNativeGoPluginLoaded() &&
+            file.fileType.name == "textmate" &&
+            file.virtualFile?.let(::isGoFile) == true
 
     /**
      * A Go test file, by the only rule the toolchain and GoLand both use: the name ends `_test.go`.

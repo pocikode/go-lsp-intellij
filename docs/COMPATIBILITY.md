@@ -45,6 +45,11 @@ The bundled TextMate `PlainTextTodoIndexer` is deliberately retained: replacing 
 `TodoIndexEntry` API. It may over-index a TODO-looking string as a candidate, but the Go builder's
 comment ranges prevent that candidate from becoming a visible item.
 
+Struct-tag suggestions use the stable platform completion APIs (`CompletionContributor`,
+`LookupElementBuilder`, `TypedHandlerDelegate`, `AutoPopupController`, and `CompletionConfidence`).
+The typed handler is global, so it must retain explicit TextMate `.go` and native-plugin checks;
+the contributor's language registration alone does not protect that path.
+
 The platform client declares no `documentSymbol` or `workspace/symbol` client capabilities, so
 `GoLspServerDescriptor` overrides `clientCapabilities` to add them. If a future platform release
 declares them itself, that override should be re-checked rather than removed blindly - `gopls`
@@ -91,7 +96,7 @@ IntelliJ 2026.1.4 renamed the LSP API classes (`LspServerSupportProvider` to `Ls
 
 ## GoLand
 
-GoLand already ships native Go support. Registering another Go language implementation can produce duplicate file types, completion providers, inspections, and actions. When the native Go plugin (`org.jetbrains.plugins.go`) is loaded, the server support provider does not start `gopls`. The check uses `PluginManagerCore.isLoaded`, not `isPluginInstalled`, because the Go plugin can be installed yet fail to load when the Ultimate module is disabled without a subscription. GoLand is not an initial supported product beyond that guard.
+GoLand already ships native Go support. Registering another Go language implementation can produce duplicate file types, completion providers, inspections, and actions. When the native Go plugin (`org.jetbrains.plugins.go`) is loaded, the server support provider does not start `gopls`, and the local struct-tag completion and intention also stand down. The check uses `PluginManagerCore.isLoaded`, not `isPluginInstalled`, because the Go plugin can be installed yet fail to load when the Ultimate module is disabled without a subscription. GoLand is not an initial supported product beyond that guard.
 
 ## Go Versions
 

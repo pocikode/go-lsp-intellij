@@ -52,6 +52,17 @@
             <className>com.github.pocikode.go_lsp_intellij.GoAddKeyToTagsIntention</className>
         </intentionAction>
         <!--
+            gopls does not complete struct tag keys. This contributor reads the original document
+            because TextMate presents a Go file as one PSI leaf, and opens automatically after ``.
+        -->
+        <completion.contributor id="GoStructTagCompletionContributor"
+                                language="textmate"
+                                implementationClass="com.github.pocikode.go_lsp_intellij.GoStructTagCompletionContributor"
+                                order="first" />
+        <typedHandler implementation="com.github.pocikode.go_lsp_intellij.GoStructTagCompletionAutoPopup" />
+        <completion.confidence language="textmate"
+                               implementationClass="com.github.pocikode.go_lsp_intellij.GoStructTagCompletionConfidence" />
+        <!--
             TextMate indexes TODO words as candidates but exposes an empty PSI lexer, so the TODO
             tool window cannot recover exact items or navigate them. This Go-only lexer contributes
             real comment ranges; `order="last"` makes it win over TextMate's empty builder.

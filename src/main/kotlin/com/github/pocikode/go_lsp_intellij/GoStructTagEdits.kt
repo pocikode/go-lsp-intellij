@@ -10,14 +10,15 @@ internal object GoStructTagEdits {
         val struct = GoStructFields.enclosing(source, caretOffset) ?: return emptyList()
         return struct.fields.mapNotNull { field ->
             if (key in field.tagKeys) return@mapNotNull null
-            val value = field.name.toSnakeCase()
-            val pair = "$key:\"$value\""
-            field.tagBodyRange?.let { Edit(it.endOffset, " $pair") }
+            val pair = pair(key, field.name)
+            field.tagBodyRange?.let { Edit(it.endOffset, if (it.isEmpty) pair else " $pair") }
                 ?: Edit(field.typeEndOffset, " `$pair`")
         }
     }
 
     fun isValidKey(key: String): Boolean = KEY.matches(key)
+
+    fun pair(key: String, fieldName: String): String = "$key:\"${fieldName.toSnakeCase()}\""
 
     private fun String.toSnakeCase(): String {
         val result = StringBuilder(length + 4)
