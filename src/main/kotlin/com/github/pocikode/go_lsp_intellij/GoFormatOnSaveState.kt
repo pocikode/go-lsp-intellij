@@ -10,7 +10,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 @Service(Service.Level.PROJECT)
 @State(name = "GoFormatOnSave", storages = [Storage("go-format-on-save.xml")])
 class GoFormatOnSaveState : PersistentStateComponent<GoFormatOnSaveState> {
-    var enabled: Boolean = false
+    var enabled: Boolean = true
 
     override fun getState(): GoFormatOnSaveState = this
 

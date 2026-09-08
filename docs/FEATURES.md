@@ -18,7 +18,7 @@
 - Code vision above every Go declaration: usage count, code author, and "Implement interface"
 - GoLand-style struct-tag completion in empty backticks: **Add tag key to all fields**, `asn1`, `bson`, `json`, `xml`, and `yaml`
 - GoLand-style context actions: `gopls`-backed **Fill all fields** for struct literals and plugin-owned **Add key to tags** for struct declarations
-- Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
+- GoLand-style format-on-save through local `gofmt`, enabled by default and configurable under Actions on Save
 - Optional import organization through `goimports`
 - Main-function runner: a run arrow on `func main()`, a "Go Run" configuration, and `go run .` output in the platform Run tool window
 - Go test runner: last-result gutter icons for tests and statically named table cases, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`

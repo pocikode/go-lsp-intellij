@@ -53,7 +53,7 @@ Go toolchain and workspace
 - `RestartGoLspAction`: restarts the project server through `LspServerManager`.
 - `GoLspFormatting`: runs Go source text through the local toolchain - `gofmt`, then `goimports` when it is enabled and installed. Shared by format-on-save and by "Implement interface"; every entry point blocks on an external process and must be called off the UI thread.
 - `GoFormatOnSave`: registers the project-level Actions on Save integration and sends the current in-memory `.go` document through `GoLspFormatting`.
-- `GoFormatOnSaveState`: persists the format-on-save choice per project.
+- `GoFormatOnSaveState`: enables format-on-save by default and persists the user's choice per project, including an explicit opt-out.
 - `GoMainFunction`: finds a runnable `func main()` in a `package main` file. It uses text rather than PSI so the runner has no LSP dependency; its matching tests stay pure JUnit.
 - `GoMainLineMarkerProvider`: places the run arrow on the `main` identifier by offset inside the TextMate PSI leaf.
 - `GoRunConfiguration`, `GoRunConfigurationType` and `GoRunSettingsEditor`: the editable "Go Run" configuration. It stores the working directory, package or file target, Go tool arguments, program arguments, and environment.
@@ -90,7 +90,7 @@ gopls serve
 
 The working directory is the IntelliJ project base path. The platform handles JSON-RPC transport, document synchronization, server capabilities, diagnostics, and standard feature adapters. Stop and restart actions are available from the status bar widget and from `Tools | Restart Go Language Server`.
 
-When `Reformat Go files with gofmt` is enabled under `Settings | Tools | Actions on Save`, the save action sends the current in-memory document through `gofmt` and applies its stdout before the platform saves the document. If `Organize imports with goimports` is enabled in `Settings | Tools | Go LSP`, the formatted text is written to a temporary file beside the source file and passed to `goimports`. Running from the source directory lets `goimports` resolve the module, remove unused imports, and group standard-library and third-party imports before the result is copied back. Formatting does not depend on the LSP server being started.
+`Reformat Go files with gofmt` starts enabled for each project and can be disabled under `Settings | Tools | Actions on Save`. The save action sends the current in-memory document through `gofmt` and applies its stdout before the platform saves the document. If `Organize imports with goimports` is enabled in `Settings | Tools | Go LSP`, the formatted text is written to a temporary file beside the source file and passed to `goimports`. Running from the source directory lets `goimports` resolve the module, remove unused imports, and group standard-library and third-party imports before the result is copied back. Formatting does not depend on the LSP server being started.
 
 ## Why The Code Vision Is Plugin-Owned
 

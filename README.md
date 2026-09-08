@@ -25,7 +25,7 @@ The first milestone is the server integration foundation:
 - Go struct-tag completion for `asn1`, `bson`, `json`, `xml`, and `yaml`, plus a plugin-owned **Add tag key to all fields** entry and the matching editor intention
 - TODO tool-window support for `TODO`, `FIXME`, and custom TODO patterns in Go comments, including
   the Project and Current File views and navigation to the matching source
-- Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
+- GoLand-style format-on-save through `gofmt`, enabled by default with optional `goimports` import organization
 - A GoLand-style run arrow on `func main()`, backed by an editable "Go Run" configuration and `go run .`
 - GoLand's test runner: gutter icons that retain the last pass/fail state, per-case actions for statically named table tests, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed
 
@@ -155,7 +155,7 @@ Open `Settings | Tools | Go LSP`:
 
 The language-server widget in the status bar shows the `gopls` state and offers stop and restart actions. `Tools | Restart Go Language Server` restarts it as well. Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Settings` to trace LSP traffic.
 
-To format Go files automatically when saving, enable `Reformat Go files with gofmt` in `Settings | Tools | Actions on Save`. The action formats the current editor contents with `gofmt` before saving. `Organize imports with goimports` is enabled by default. When installed, `goimports` runs against a temporary file beside the source file so it can resolve the project module, remove unused imports, and create standard-library versus third-party import groups. If it is not installed, the action safely falls back to `gofmt` only.
+`Reformat Go files with gofmt` is enabled automatically for each project under `Settings | Tools | Actions on Save`; clear the checkbox there to opt out. The action formats the current editor contents with `gofmt` before saving. `Organize imports with goimports` is enabled by default. When installed, `goimports` runs against a temporary file beside the source file so it can resolve the project module, remove unused imports, and create standard-library versus third-party import groups. If it is not installed, the action safely falls back to `gofmt` only.
 
 ## Product Compatibility
 
