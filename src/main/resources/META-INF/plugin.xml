@@ -12,6 +12,7 @@
         go-lsp.xml.
     -->
     <depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>
+    <depends optional="true" config-file="go-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType name="Go Module Files"
@@ -26,10 +27,15 @@
                                 implementationClass="com.github.pocikode.go_lsp_intellij.GoModuleCompletionContributor" />
         <applicationService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoLspSettingsState" />
         <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSaveState" />
-        <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoDependencyService" />
-        <applicationConfigurable parentId="tools" displayName="Go LSP"
-                                 id="com.github.pocikode.go_lsp_intellij.GoLspConfigurable"
-                                 instance="com.github.pocikode.go_lsp_intellij.GoLspConfigurable" />
+         <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoDependencyService" />
+         <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoProjectModelState" />
+         <projectService serviceImplementation="com.github.pocikode.go_lsp_intellij.GoProjectModelService" />
+         <applicationConfigurable parentId="tools" displayName="Go LSP"
+                                  id="com.github.pocikode.go_lsp_intellij.GoLspConfigurable"
+                                  instance="com.github.pocikode.go_lsp_intellij.GoLspConfigurable" />
+         <projectConfigurable parentId="tools" displayName="Go"
+                              id="com.github.pocikode.go_lsp_intellij.GoProjectConfigurable"
+                              instance="com.github.pocikode.go_lsp_intellij.GoProjectConfigurable" />
         <actionOnSaveInfoProvider id="GoLspFormatOnSaveInfoProvider"
                                    implementation="com.github.pocikode.go_lsp_intellij.GoFormatOnSaveInfoProvider" />
         <actionOnSave id="GoLspFormatOnSave"

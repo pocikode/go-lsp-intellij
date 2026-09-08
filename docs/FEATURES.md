@@ -26,6 +26,12 @@
 - `go.mod` and `go.work` LSP support: hover, navigation, diagnostics, quick fixes, `go.work` path completion, and imported-vulnerability diagnostics
 - Go module maintenance actions: `go mod tidy`, `go mod download`, `go mod vendor`, dependency update through `go get -u ./...`, and explicit dependency refresh
 - Go Dependencies tool window: selected and available versions, indirect and replaced modules, deprecation/retraction notices, optional `govulncheck` findings, and a package/version dependency tree
+- Project Go model: selectable Go SDK/GOROOT, installed SDK discovery and official Go-version downloads, workspace-aware modules and packages, SDK/module-cache/GOPATH external-library roots, and build context for tags, GOOS, GOARCH, CGO, and vendoring
+- Project toolchain settings are available under `Settings | Tools | Go` and are stored per project in `.idea/go-project-model.xml`; `Settings | Tools | Go LSP` remains application-scoped for `gopls` settings
+- Go SDK downloads run in a background task with IntelliJ progress reporting and expose Go 1.26 and Go 1.27 in the download selector
+- The download selector shows only the latest stable patch for each supported minor (`1.27.1`, `1.26.8`, `1.25.14`, `1.24.13`, `1.23.12`, `1.22.12`); installed system SDKs are also detected on macOS, Linux, and Windows
+- The selected project SDK is used by `gopls`, the integrated terminal, Go Run, Go Test, dependency commands, and formatting
+- Dependency state refreshes automatically after `go.mod`, `go.sum`, `go.work`, or `go.work.sum` changes
 
 - TODO tool-window items from Go line and block comments, including Project and Current File views,
   custom TODO patterns, highlighting, and source navigation
@@ -304,9 +310,7 @@ subtest resolves to its string or table field; a dynamic subtest falls back to i
 ## Not Yet Implemented
 
 - Automatic `gopls` download
-- Go version selection
-- Go SDK/project model integration
-- External Libraries/project-tree integration for module cache and SDK packages
+- External Libraries/project-tree presentation is currently model-backed; native Project View node injection remains future work
 - Automatic dependency synchronization policy; module mutations are explicit actions
 - Coverage
 - Delve debugging

@@ -66,6 +66,7 @@ dependencies {
         local(platformPath.get())
         bundledModule("intellij.platform.testRunner")
         bundledModule("intellij.platform.smRunner")
+        bundledPlugin("org.jetbrains.plugins.terminal")
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
     // Gradle 9 no longer puts the launcher on the test runtime classpath implicitly, and the

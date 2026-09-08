@@ -30,6 +30,17 @@ The first milestone is the server integration foundation:
 - GoLand's test runner: gutter icons that retain the last pass/fail state, per-case actions for statically named table tests, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed
 - Syntax highlighting for `go.mod`, `go.work`, `go.sum`, and `go.work.sum`, local directive/module/version completion, and `gopls` hover, navigation, diagnostics, quick fixes, and imported-vulnerability reporting for the editable manifests
 - Go module maintenance actions for tidy, download, vendor, update, and refresh, plus a Go Dependencies tool window with versions, available updates, replacements, deprecations, retractions, vulnerabilities, and the module graph
+- A project Go model with configurable Go SDK/GOROOT, installed SDK discovery and official version downloads, `go.work` multi-module package modeling, build context (tags, GOOS, GOARCH, CGO, vendoring, GOPATH), and SDK/module-cache/GOPATH external-library roots
+- Dependency and project-model refresh after module manifest changes
+
+The Go SDK/version selector is under `Settings | Tools | Go`. Its selection and build settings are
+stored in the project configuration, so different projects can use different Go versions. The
+`Settings | Tools | Go LSP` page only stores application-level `gopls` settings.
+SDK downloads run in the background with progress reporting; Go 1.26 and Go 1.27 are available in
+the download-version selector.
+The selector offers the latest stable patch for each supported minor release and also includes Go
+installations detected on macOS, Linux, and Windows. The selected project SDK is used by the
+integrated terminal, `gopls`, Go Run, Go Test, dependency commands, and formatting.
 
 Signature help, structure view, and call hierarchy are provided by the platform starting with IntelliJ IDEA 2025.3. See [docs/FEATURES.md](docs/FEATURES.md) for the full matrix.
 

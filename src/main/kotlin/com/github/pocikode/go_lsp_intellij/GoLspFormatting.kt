@@ -21,7 +21,8 @@ import java.nio.file.Files
 internal object GoLspFormatting {
     /** [text] formatted, or null when the toolchain is missing or refused it - leave the text alone then. */
     fun format(project: Project, file: VirtualFile, text: String): String? {
-        val gofmt = GoLspDiscovery.findGoTool("gofmt") ?: run {
+        val gofmt = GoToolchain.executable(project)?.let { java.io.File(it).parentFile.resolve(if (com.intellij.openapi.util.SystemInfo.isWindows) "gofmt.exe" else "gofmt").absolutePath }
+            ?.takeIf { java.io.File(it).canExecute() } ?: GoLspDiscovery.findGoTool("gofmt") ?: run {
             LOG.warn("gofmt was not found; leaving ${file.name} unformatted")
             return null
         }
@@ -29,7 +30,8 @@ internal object GoLspFormatting {
         val gofmtText = runFormatter(gofmt, text, project.basePath, file.name) ?: return null
         if (!GoLspSettingsState.getInstance().useGoimports) return gofmtText
 
-        val goimports = GoLspDiscovery.findGoTool("goimports") ?: run {
+        val goimports = GoToolchain.executable(project)?.let { java.io.File(it).parentFile.resolve(if (com.intellij.openapi.util.SystemInfo.isWindows) "goimports.exe" else "goimports").absolutePath }
+            ?.takeIf { java.io.File(it).canExecute() } ?: GoLspDiscovery.findGoTool("goimports") ?: run {
             LOG.debug("goimports was not found; using gofmt only for ${file.name}")
             return gofmtText
         }

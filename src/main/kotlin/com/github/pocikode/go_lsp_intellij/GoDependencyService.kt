@@ -10,6 +10,9 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -31,6 +34,16 @@ internal class GoDependencyService(private val project: Project) {
     @Volatile
     var report: GoDependencyReport = GoDependencyReport()
         private set
+
+    init {
+        project.messageBus.connect(project).subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: List<out VFileEvent>) {
+                if (events.any { it.file?.name in setOf("go.mod", "go.sum", "go.work", "go.work.sum") }) {
+                    GoDependencyActions.refresh(project, activate = false)
+                }
+            }
+        })
+    }
 
     fun refresh(indicator: ProgressIndicator? = null): GoDependencyReport {
         val generation = refreshGeneration.incrementAndGet()
@@ -106,7 +119,7 @@ internal class GoDependencyService(private val project: Project) {
         indicator: ProgressIndicator? = null,
         vararg arguments: String,
     ): GoToolResult? {
-        val executable = GoLspDiscovery.findGoTool("go") ?: return null
+        val executable = GoToolchain.executable(project) ?: return null
         return run(executable, directory, timeout, indicator, *arguments)
     }
 
@@ -121,6 +134,7 @@ internal class GoDependencyService(private val project: Project) {
             .withParameters(*arguments)
             .withWorkingDirectory(directory)
             .withCharset(StandardCharsets.UTF_8)
+        GoToolchain.configure(commandLine, project)
         val handler = CapturingProcessHandler(commandLine)
         val output = if (indicator == null) handler.runProcess(timeout) else {
             handler.runProcessWithProgressIndicator(indicator, timeout)

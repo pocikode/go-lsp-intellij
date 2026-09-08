@@ -29,7 +29,7 @@ class GoTestRunningState(
 ) : CommandLineState(environment) {
 
     override fun startProcess(): ProcessHandler {
-        val go = GoLspDiscovery.findGoTool("go")
+        val go = GoToolchain.executable(configuration.project)
             ?: throw ExecutionException("The go executable was not found")
 
         val commandLine = GeneralCommandLine(go, "test", "-json")
@@ -42,6 +42,7 @@ class GoTestRunningState(
         commandLine.withWorkDirectory(configuration.directoryPath)
         commandLine.withCharset(StandardCharsets.UTF_8)
         configuration.envData.configureCommandLine(commandLine, true)
+        GoToolchain.configure(commandLine, configuration.project)
 
         val handler = KillableColoredProcessHandler(commandLine)
         ProcessTerminatedListener.attach(handler)

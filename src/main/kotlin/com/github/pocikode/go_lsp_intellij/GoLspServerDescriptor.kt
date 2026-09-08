@@ -76,7 +76,7 @@ class GoLspServerDescriptor(project: Project, private val executable: String) :
     override fun createCommandLine(): GeneralCommandLine {
         val settings = GoLspSettingsState.getInstance()
         val arguments = settings.goplsArguments.trim().split(Regex("\\s+")).filter(String::isNotBlank)
-        return GeneralCommandLine(executable)
+        return GeneralCommandLine(executable).also { GoToolchain.configure(it, project) }
             .withParameters(arguments)
             .withWorkDirectory(project.basePath)
     }

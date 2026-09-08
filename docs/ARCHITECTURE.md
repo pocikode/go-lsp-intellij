@@ -87,6 +87,26 @@ Go toolchain and workspace
 - `GoDependenciesToolWindowFactory`: renders the service snapshot as module, dependency-tree, and
   vulnerability views. The project view is not altered because the plugin has no Go SDK/module
   project model from which to create honest External Libraries nodes.
+- `GoProjectModelService`: derives the project model from `go env`, `go list`, and `go work edit -json`.
+  It models the selected SDK/GOROOT, every module in `go.work`, packages, build context, and external
+  library roots without pretending that Go packages are IntelliJ Java libraries. `GoProjectModelState`
+  persists project overrides. Manifest VFS changes refresh both this model and dependency inspection;
+  mutation remains explicit, so editing a manifest never runs `go mod tidy` implicitly.
+- `GoProjectConfigurable` is the project-level UI for that state (`Settings | Tools | Go`). The SDK,
+  selected Go version, and build context are persisted in `.idea/go-project-model.xml`; they must not
+  be placed in `GoLspSettingsState`, because one IntelliJ installation can open projects requiring
+  different toolchains. `GoLspConfigurable` remains application-level and only configures `gopls`.
+- `GoSdkDiscovery`: finds installed toolchains and uses the official `golang.org/dl` wrappers for
+  version downloads. Downloading is deliberately opt-in and version-validated rather than silently
+  changing the active toolchain. `GoProjectConfigurable` runs both wrapper installation and toolchain
+  download in an IntelliJ background task, so the settings dialog is not blocked and each stage is
+  visible through the platform progress indicator.
+- `GoToolchain` is the single executable/environment boundary for project-selected Go. Run and test
+  configurations, dependency commands, formatting, and the optional terminal customizer all use its
+  selected `GOROOT/bin/go`; falling back to ambient `PATH` is allowed only when the project has no
+  SDK configured. It also sets `GOTOOLCHAIN=local`: Go 1.21 and newer otherwise auto-switch to a
+  toolchain named by `go.mod`, which would make the selected SDK appear configured while executing
+  a different Go release.
 
 ## Descriptor Layout
 

@@ -36,7 +36,7 @@ class GoRunConfiguration(project: Project, factory: ConfigurationFactory, name: 
         if (directoryPath.isBlank()) throw RuntimeConfigurationError("Specify the directory to run go in")
         if (!File(directoryPath).isDirectory) throw RuntimeConfigurationError("$directoryPath is not a directory")
         if (target.isBlank()) throw RuntimeConfigurationError("Specify a package or file to run")
-        GoLspDiscovery.findGoTool("go")
+        GoToolchain.executable(project)
             ?: throw RuntimeConfigurationError("The go executable was not found; add it to PATH or set GOROOT")
     }
 
