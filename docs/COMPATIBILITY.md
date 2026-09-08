@@ -54,6 +54,8 @@ None of these need the LSP module; all of them ship in every IntelliJ IDEA build
   element it is given, and a TextMate `.go` file has exactly one, so every test would open at the
   top of its file; the line is known, so the descriptor is built from it directly.
 - `AbstractRerunFailedTestsAction` and its `MyRunProfile`, for rerun-failed.
+- `RunLineMarkerContributor.getTestStateIcon`, for the standard persisted passed/failed gutter icon
+  even though TextMate's single-leaf PSI requires the markers themselves to use `LineMarkerInfo`.
 - `LineMarkerProvider`, used instead of `RunLineMarkerContributor`, and no `RunConfigurationProducer`
   at all. Both of those are handed PSI elements to recognise; see `docs/ARCHITECTURE.md`.
 - `com.google.gson`, which the platform bundles and lsp4j already depends on, for parsing the
@@ -65,7 +67,7 @@ The main-function runner shells out to `go run .` from the package directory. Th
 configuration can use another package or file target and keeps Go tool arguments before that target,
 with program arguments after it. The runner passes no flags beyond those supplied by the user.
 
-The test runner shells out to `go test -json`. `-json` has been available since Go 1.10, and the
+The test runner shells out to `go test -json -v`. Both flags have been available since Go 1.10, and the
 event fields used - `Action`, `Package`, `Test`, `Output`, `Elapsed` - have been stable since. A
 recent addition is `OutputType`, which labels the toolchain's own `=== RUN` and `--- PASS` lines
 (present in go 1.27, the version this was verified against); it is used when present and a pattern
@@ -103,6 +105,9 @@ Future managed installation must support selecting a Go version without changing
 - The gutter arrows find test functions by matching the file's text. A `func TestX(` written at the
   start of a line inside a raw string literal would be matched; nothing else in Go's grammar can
   produce a false positive there.
+- Table-case gutter actions require a static name: a literal `t.Run` argument, or a string field in
+  a local keyed or positional `[]struct` table selected by a range loop. Cases produced by function calls or
+  arbitrary expressions still appear in the runtime test tree but cannot be selected from source.
 - The main-function arrow also reads the file text. A file whose raw string contains both a
   line-shaped `package main` and `func main() {` can produce a false marker.
 - A test appears in the test tree when it finishes rather than when it starts. See

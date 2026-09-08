@@ -49,13 +49,13 @@ Go toolchain and workspace
 - `GoRunConfiguration`, `GoRunConfigurationType` and `GoRunSettingsEditor`: the editable "Go Run" configuration. It stores the working directory, package or file target, Go tool arguments, program arguments, and environment.
 - `GoRunRunningState`: starts `go run`, putting Go tool arguments before the target and program arguments after it, then uses the platform's standard Run console.
 - `GoRunRunner`: creates or reuses the `go run .` configuration behind a main-function gutter click.
-- `GoTestFunctions`: finds the test declarations in a Go file's text and builds the `-run` patterns that select them. Pure text handling, and where the tests are.
-- `GoTestEventTranslator`: turns the `go test -json` event stream into the service messages the platform's SM test runner builds its tree from. Nodes are id-based and a test's start is deferred; see below. Anything that is not an event - a compiler error, a panic - passes through to the console untouched.
+- `GoTestFunctions`: finds test declarations and statically named direct or table-driven subtests in a Go file's text, and builds the `-run` patterns that select them. Pure text handling, and where the tests are.
+- `GoTestEventTranslator`: turns the `go test -json` event stream into the service messages the platform's SM test runner builds its tree from. Nodes are id-based and a test's start is deferred; see below. Non-event process output passes through untouched; event output, including `fmt`, `log`, and panic stacks, is attached to its test. A package failure marks any still-open test failed so an abrupt panic cannot become ignored.
 - `GoTestRunConfiguration`, `GoTestRunConfigurationType` and `GoTestSettingsEditor`: the "Go Test" run configuration. It stores the `go test` command line - directory, package pattern, `-run` pattern, extra flags, environment - rather than a friendlier abstraction over it, so what the gutter generated stays readable and editable.
-- `GoTestRunningState`: builds and starts the `go test -json` process and attaches the SM console to it.
+- `GoTestRunningState`: builds and starts the `go test -json -v` process and attaches the SM console to it; verbose mode is explicit so successful-test logs are always requested.
 - `GoTestConsoleProperties`: wires the converter, the locator and the rerun-failed action to the platform runner, and turns on the id-based tree. `GoTestEventsConverter` and `GoTestRerunFailedAction` live beside it.
-- `GoTestLocator`: resolves a node in the tree back to a line in a Go file, mapping an import path to a directory through the module path in `go.mod`.
-- `GoTestLineMarkerProvider`: the gutter arrows, placed by offset rather than by PSI element; see below.
+- `GoTestLocator`: resolves a node in the tree back to a line in a Go file and maps between source directories and package import paths through the module path in `go.mod`.
+- `GoTestLineMarkerProvider`: the gutter actions, placed by offset rather than by PSI element; it reads IntelliJ's persisted test state through `RunLineMarkerContributor` so the action reflects the last outcome. See below.
 - `GoTestRunner`: creates or reuses a run configuration for a test, a file or a package and starts it, which is what a `RunConfigurationProducer` would normally do.
 - `GoTestOutputFilter` and `GoTestConsoleFilterProvider`: turn the `foo_test.go:12` in front of a failure into a link to that line.
 
@@ -106,6 +106,13 @@ explicit ranges inside that leaf, from declarations read out of the text. `GoRun
 `GoTestRunner` do what producers would have done. If a future TextMate release gives `.go` files a
 real PSI, all four become replaceable by the platform's own machinery; check that before extending
 them.
+
+The test scan also recognises statically named `t.Run` calls and conventional keyed or positional anonymous
+struct table pattern. It intentionally does not evaluate Go expressions: cases computed by helper
+functions still appear when `go test -json` reports them, but cannot have a source gutter action.
+Marker state needs no plugin cache. The SM runner persists each outcome by the location URL emitted
+by `GoTestEventTranslator`, and the marker asks `RunLineMarkerContributor.getTestStateIcon` for that
+same URL.
 
 The main action runs `go run .` from the source file's directory. A Go command is a package and may
 span several files, so a file-only target can compile a different program or fail when another file

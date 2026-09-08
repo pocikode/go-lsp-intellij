@@ -70,8 +70,9 @@ class GoTestEventTranslatorTest {
         // go test's own progress lines are the tree's job, not the output pane's.
         assertTrue(!failed.contains("=== RUN"), failed)
         assertTrue(!failed.contains("--- FAIL"), failed)
-        // The output is reported once, as the failure, rather than printed above it as well.
-        assertEquals(emptyList<String>(), names("testStdOut"))
+        // Every log line remains visible as ordinary test output, including on failure.
+        assertTrue(names("testStdOut").single().contains("one_test.go:9: got 1, want 2"))
+        assertTrue(!attribute(failed, "details").contains("one_test.go"), failed)
     }
 
     @Test
@@ -94,6 +95,56 @@ class GoTestEventTranslatorTest {
     fun `passes package output through as it arrives`() {
         feed("""{"Action":"output","Package":"m/pkg","Output":"ok  \tm/pkg\t0.3s\n"}""")
         assertEquals(listOf("ok  \tm/pkg\t0.3s\n"), emitted)
+    }
+
+    @Test
+    fun `keeps logs from a successful test`() {
+        feed(
+            """{"Action":"run","Package":"m/pkg","Test":"TestOne"}""",
+            """{"Action":"output","Package":"m/pkg","Test":"TestOne","Output":"application log\n"}""",
+            """{"Action":"pass","Package":"m/pkg","Test":"TestOne"}""",
+        )
+        assertTrue(names("testStdOut").single().contains("application log"))
+    }
+
+    @Test
+    fun `keeps benchmark result output`() {
+        feed(
+            """{"Action":"run","Package":"m/pkg","Test":"BenchmarkOne"}""",
+            """{"Action":"bench","Package":"m/pkg","Test":"BenchmarkOne","Output":"BenchmarkOne-8  100  12 ns/op\n"}""",
+            """{"Action":"pass","Package":"m/pkg","Test":"BenchmarkOne"}""",
+        )
+        assertTrue(names("testStdOut").single().contains("12 ns/op"))
+    }
+
+    @Test
+    fun `prints fmt and log output and marks a panic as failed`() {
+        feed(
+            """{"Action":"run","Package":"m/pkg","Test":"TestPanic"}""",
+            """{"Action":"output","Package":"m/pkg","Test":"TestPanic","Output":"fmt panic\n"}""",
+            """{"Action":"output","Package":"m/pkg","Test":"TestPanic","Output":"2026/09/08 13:45:17 log panic\n"}""",
+            """{"Action":"output","Package":"m/pkg","Test":"TestPanic","Output":"panic: boom [recovered, repanicked]\n"}""",
+            """{"Action":"output","Package":"m/pkg","Test":"TestPanic","Output":"example.com/pkg.TestPanic()\n"}""",
+            """{"Action":"fail","Package":"m/pkg","Test":"TestPanic"}""",
+            """{"Action":"fail","Package":"m/pkg"}""",
+        )
+        val output = names("testStdOut").single()
+        assertTrue(output.contains("fmt panic"), output)
+        assertTrue(output.contains("log panic"), output)
+        assertTrue(output.contains("panic: boom"), output)
+        assertTrue(output.contains("TestPanic"), output)
+        assertTrue(names("testFailed").single().contains("message='panic: boom"))
+    }
+
+    @Test
+    fun `a panic followed by package failure cannot leave the test ignored`() {
+        feed(
+            """{"Action":"run","Package":"m/pkg","Test":"TestPanic"}""",
+            """{"Action":"output","Package":"m/pkg","Test":"TestPanic","Output":"panic: boom\n"}""",
+            """{"Action":"fail","Package":"m/pkg"}""",
+        )
+        assertEquals(1, names("testFailed").size)
+        assertEquals(0, names("testIgnored").size)
     }
 
     @Test
@@ -134,6 +185,7 @@ class GoTestEventTranslatorTest {
         assertTrue(failed.contains("printed by the test"), failed)
         assertTrue(!failed.contains("=== RUN"), failed)
         assertTrue(!failed.contains("TestOne (0.00s)"), failed)
+        assertTrue(names("testStdOut").single().contains("printed by the test"))
     }
 
     private fun attribute(message: String, name: String): String =

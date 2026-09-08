@@ -56,6 +56,109 @@ class GoTestFunctionsTest {
     }
 
     @Test
+    fun `finds direct literal subtests`() {
+        val source = """
+            package pkg
+
+            func TestOne(t *testing.T) {
+                t.Run("first case", func(t *testing.T) {})
+                t.Run(`second/case`, func(t *testing.T) {})
+            }
+        """.trimIndent()
+        val subtests = GoTestFunctions.find(source).single().subtests
+        assertEquals(listOf("first_case", "second/case"), subtests.map { it.name })
+        assertEquals("first case", source.substring(subtests[0].nameOffset, subtests[0].nameOffset + 10))
+    }
+
+    @Test
+    fun `normalizes subtest names the way Go testing does`() {
+        val source = """
+            package pkg
+
+            func TestOne(t *testing.T) {
+                t.Run("line\nbell\x07", func(t *testing.T) {})
+            }
+        """.trimIndent()
+        assertEquals(listOf("line_bell\\a"), GoTestFunctions.find(source).single().subtests.map { it.name })
+    }
+
+    @Test
+    fun `finds names in a conventional table driven test`() {
+        val source = """
+            package pkg
+
+            func TestOne(t *testing.T) {
+                tests := []struct {
+                    name string
+                    want int
+                }{
+                    {name: "empty", want: 0},
+                    {name: "with value", want: 1},
+                }
+                for _, tt := range tests {
+                    t.Run(tt.name, func(t *testing.T) {})
+                }
+            }
+        """.trimIndent()
+        assertEquals(
+            listOf("empty", "with_value"),
+            GoTestFunctions.find(source).single().subtests.map { it.name },
+        )
+    }
+
+    @Test
+    fun `uses the selected table field rather than every string field`() {
+        val source = """
+            package pkg
+
+            func TestOne(t *testing.T) {
+                cases := []struct { label, input string }{
+                    {label: "case one", input: "ignored"},
+                }
+                for _, tc := range cases {
+                    t.Run(tc.label, func(t *testing.T) {})
+                }
+            }
+        """.trimIndent()
+        assertEquals(listOf("case_one"), GoTestFunctions.find(source).single().subtests.map { it.name })
+    }
+
+    @Test
+    fun `finds names in positional anonymous struct table rows`() {
+        val source = """
+            package pkg
+
+            func TestOne(t *testing.T) {
+                cases := []struct { input string; label string }{
+                    {"ignored", "first case"},
+                    {"ignored too", "second"},
+                }
+                for _, tc := range cases {
+                    t.Run(tc.label, func(t *testing.T) {})
+                }
+            }
+        """.trimIndent()
+        assertEquals(
+            listOf("first_case", "second"),
+            GoTestFunctions.find(source).single().subtests.map { it.name },
+        )
+    }
+
+    @Test
+    fun `ignores dynamic table names it cannot select statically`() {
+        val source = """
+            package pkg
+
+            func TestOne(t *testing.T) {
+                for _, tt := range makeCases() {
+                    t.Run(tt.name, func(t *testing.T) {})
+                }
+            }
+        """.trimIndent()
+        assertEquals(emptyList<GoTestFunctions.Subtest>(), GoTestFunctions.find(source).single().subtests)
+    }
+
+    @Test
     fun `anchors a single test name`() {
         assertEquals("^TestOne$", GoTestFunctions.runPattern(listOf("TestOne")))
     }

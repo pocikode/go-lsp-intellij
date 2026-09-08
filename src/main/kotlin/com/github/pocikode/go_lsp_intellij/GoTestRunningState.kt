@@ -20,8 +20,8 @@ import java.nio.charset.StandardCharsets
  * Runs one `go test` process and hands its output to the platform's test runner.
  *
  * `-json` is what makes the tree possible: it asks the toolchain for the machine-readable event
- * stream [GoTestEventTranslator] reads, and it already implies the verbose output those events are
- * built from, so `-v` is not passed.
+ * stream [GoTestEventTranslator] reads. `-v` is also passed explicitly so successful-test logs are
+ * part of that stream even when custom arguments contain another verbosity setting.
  */
 class GoTestRunningState(
     environment: ExecutionEnvironment,
@@ -37,6 +37,7 @@ class GoTestRunningState(
         // Flags have to precede the package pattern, which go test treats as the end of its own
         // arguments.
         commandLine.addParameters(ParametersListUtil.parse(configuration.goToolArguments))
+        commandLine.addParameter("-v")
         commandLine.addParameter(configuration.packagePattern)
         commandLine.withWorkDirectory(configuration.directoryPath)
         commandLine.withCharset(StandardCharsets.UTF_8)

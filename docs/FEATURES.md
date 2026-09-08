@@ -19,7 +19,7 @@
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
 - Main-function runner: a run arrow on `func main()`, a "Go Run" configuration, and `go run .` output in the platform Run tool window
-- Go test runner: run arrows in the gutter of a `*_test.go` file, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`
+- Go test runner: last-result gutter icons for tests and statically named table cases, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`
 
 ## Code Vision Above A Declaration
 
@@ -223,6 +223,12 @@ versions label exactly those lines `"OutputType":"frame"`, which is used when pr
 the fallback for a toolchain that does not report the field, and is dropped for the rest of the run
 as soon as one event shows that it does.
 
+The command passes `-v` explicitly and every output-bearing test event is retained, including logs
+from successful and skipped tests and benchmark result lines. Only the structural frame lines above
+are filtered. `fmt.Println`, `log.Println`, and `t.Log` therefore all appear on their test. Panic
+output and its stack trace are printed there too; a package-level failure closes any still-open test
+as failed, covering a panic that kills the stream before `test2json` emits its test outcome.
+
 ### The Gutter Arrows
 
 The arrows are a plain `LineMarkerProvider`, not the `RunLineMarkerContributor` that normally puts a
@@ -230,6 +236,17 @@ run arrow in the gutter, and there is no `RunConfigurationProducer`. Both of tho
 elements to recognise, and the bundled TextMate grammar parses a whole `.go` file into a single PSI
 leaf - the same reason the code vision is plugin-owned. `GoTestFunctions` finds the test
 declarations in the file's text instead, and the markers are placed by offset inside that leaf.
+
+The same text scan finds direct literal `t.Run("case", ...)` calls and conventional table-driven
+tests whose cases are keyed or positional anonymous struct literals and whose loop calls `t.Run(tt.name, ...)`.
+Each discovered name gets its own gutter action with an exact `-run` pattern. Dynamic names and
+tables returned by functions stay represented only in the test tree because their values cannot be
+known before running Go.
+
+Each marker uses the same `go_test://` location URL that its test-tree node publishes. IntelliJ's
+test runner stores the last result under that URL, so a successful test or case changes to the
+platform's standard green passed icon and a failed one to red. The package marker uses the package
+suite URL in the same way.
 
 Reading the text rather than asking `gopls` is deliberate twice over: the arrows are there the
 moment a file opens, and they are there in a build with no LSP module at all, where `go test` runs
@@ -240,9 +257,8 @@ for that reason.
 
 `GoTestLocator` resolves a node back to its source. The tree only knows the package's import path
 and the test's name, and turning an import path into a directory is a string operation once `go.mod`
-has been read: the module path is the prefix every package under it shares. A subtest resolves to
-its parent test function, because Go derives a subtest's name from the string passed to `t.Run`,
-with spaces replaced by underscores, so there is usually nothing in the file to match.
+has been read: the module path is the prefix every package under it shares. A statically discovered
+subtest resolves to its string or table field; a dynamic subtest falls back to its parent function.
 
 ## Not Yet Implemented
 

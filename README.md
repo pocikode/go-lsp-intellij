@@ -24,7 +24,7 @@ The first milestone is the server integration foundation:
 - GoLand's code vision above every Go declaration: a usage count, the last committer, and "Implement interface"
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
 - A GoLand-style run arrow on `func main()`, backed by an editable "Go Run" configuration and `go run .`
-- GoLand's test runner: green run arrows in the gutter of a `*_test.go` file, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed
+- GoLand's test runner: gutter icons that retain the last pass/fail state, per-case actions for statically named table tests, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed
 
 Signature help, structure view, and call hierarchy are provided by the platform starting with IntelliJ IDEA 2025.3. See [docs/FEATURES.md](docs/FEATURES.md) for the full matrix.
 
@@ -59,9 +59,12 @@ Run tool window.
 
 ## Running Tests
 
-`*_test.go` files get GoLand's green arrows in the gutter: one beside every `func TestXxx`, and one
-on the package clause that runs the whole file. Clicking one runs `go test` and opens the usual test
-tool window - the tree, the timings, sort by duration, rerun, and rerun-failed.
+`*_test.go` files get GoLand-style gutter actions: one beside every `func TestXxx`, one on the
+package clause that runs the whole file, and one beside each statically discoverable `t.Run` case.
+This includes literal names and the usual keyed or positional table shape (`tests := []struct{...}` followed by
+`for _, tt := range tests` and `t.Run(tt.name, ...)`). Clicking a case builds an exact `-run`
+pattern for that subtest. After a run, the marker retains IntelliJ's standard green passed or red
+failed icon from the test history.
 
 The tree comes from `go test -json`, so it is what the toolchain actually reports:
 
@@ -69,10 +72,13 @@ The tree comes from `go test -json`, so it is what the toolchain actually report
   of its own with a node per subtest. Table-driven tests group the way they do in GoLand.
 - A failure carries the test's own output, and the `foo_test.go:12` in front of it is a link to
   that line.
-- Clicking a node opens the test it belongs to. A subtest opens its parent function, because Go
-  derives a subtest's name from the string given to `t.Run` and there is generally nothing in the
-  file to match it against.
+- Clicking a node opens the table name or literal that declares it when that name is statically
+  discoverable, and otherwise opens its parent test function.
 - Stopping a run leaves nothing spinning; unfinished tests are marked as not run rather than passed.
+- Test logging is verbose for passed, failed, skipped, and benchmark cases; only `go test`'s own
+  structural `=== RUN` and `--- PASS`/`FAIL` lines are removed from the output pane.
+- `fmt.Println`, `log.Println`, `t.Log`, and panic stack traces are attached to their test. A panic
+  marks the test failed even when it terminates the process before the usual per-test outcome event.
 
 A test appears in the tree when it finishes rather than when it starts. Whether `TestFoo` is a test
 or a suite of subtests is not knowable until a subtest runs, so the node is created once the answer

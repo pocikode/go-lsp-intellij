@@ -10,8 +10,9 @@ import com.intellij.execution.testframework.sm.ServiceMessageBuilder
  *
  * `go test -json` is why a GoLand-like test tree is possible without a Go parser: `test2json`
  * already reports every test's start, output, outcome and duration as one JSON object per line, so
- * nothing here has to understand Go. Anything that is not such an object - a compiler error, a
- * panic, the runner's own "process finished" line - is passed through to the console untouched.
+ * nothing here has to understand Go. Anything that is not such an object - a compiler error or the
+ * runner's own "process finished" line - is passed through to the console untouched. Panic output
+ * normally arrives inside test events and is attached to the failed test with the rest of its logs.
  *
  * Two shapes of the protocol are used deliberately:
  *
@@ -26,8 +27,11 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
 
     private class Node(val id: Int, val parentId: Int, val name: String, val locationHint: String)
 
-    private class Pending(val node: Node) {
+    private class Pending(val packageName: String, val node: Node) {
         val output = StringBuilder()
+
+        /** A panic can terminate the stream before `test2json` emits the test's `fail` event. */
+        var panicked: Boolean = false
 
         /** True once the node has been announced as a suite, which happens when a subtest runs. */
         var suite: Boolean = false
@@ -63,23 +67,13 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
     /**
      * Closes whatever is still open, so a run that was stopped or died leaves no node spinning.
      *
-     * A test that never reported an outcome is reported as ignored rather than passed: the run was
-     * interrupted, and calling that a pass would be a lie the tree keeps showing.
+     * A test that never reported an outcome is ignored when interrupted, unless its output contains
+     * a panic; a panic is always a failure even if the process dies before emitting an outcome.
      */
     fun finish() {
         for (key in tests.keys.toList().asReversed()) {
             val pending = tests.remove(key) ?: continue
-            if (pending.suite) {
-                emit(ServiceMessageBuilder.testSuiteFinished(pending.node.name).node(pending.node.id).line())
-                continue
-            }
-            start(pending)
-            flush(pending)
-            emit(
-                ServiceMessageBuilder.testIgnored(pending.node.name).node(pending.node.id)
-                    .addAttribute("message", INTERRUPTED).line(),
-            )
-            emit(ServiceMessageBuilder.testFinished(pending.node.name).node(pending.node.id).line())
+            finish(pending, if (pending.panicked) Outcome.FAILED else Outcome.SKIPPED, null, INTERRUPTED)
         }
         for (name in packages.keys.toList()) closePackage(name)
     }
@@ -87,7 +81,15 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
     private fun packageEvent(packageName: String, action: String, output: String?, event: JsonObject) {
         when (action) {
             "start" -> packageNode(packageName)
-            "pass", "fail", "skip" -> closePackage(packageName, event.duration())
+            "pass", "skip" -> {
+                output?.let(emit)
+                closePackage(packageName, event.duration())
+            }
+            "fail" -> {
+                output?.let(emit)
+                closePackageTests(packageName)
+                closePackage(packageName, event.duration())
+            }
             // Everything a package says outside a test - "no test files", a build error, the final
             // "ok" line - belongs in the console as it arrives.
             else -> output?.let(emit)
@@ -97,55 +99,74 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
     private fun testEvent(packageName: String, test: String, action: String, output: String?, event: JsonObject) {
         when (action) {
             "run" -> pending(packageName, test)
-            "output" -> {
-                val pending = pending(packageName, test)
-                val text = strip(output ?: return, event.string("OutputType")) ?: return
-                if (pending.suite) {
-                    emit(
-                        ServiceMessageBuilder.testStdOut(pending.node.name).node(pending.node.id)
-                            .addAttribute("out", text).line(),
-                    )
-                } else {
-                    pending.output.append(text)
-                }
-            }
+            "output", "bench" -> output?.let { testOutput(packageName, test, it, event.string("OutputType")) }
             "pass" -> close(packageName, test, Outcome.PASSED, event.duration())
             "fail" -> close(packageName, test, Outcome.FAILED, event.duration())
             "skip" -> close(packageName, test, Outcome.SKIPPED, event.duration())
-            // "bench" carries a benchmark's result line and is followed by an outcome of its own;
-            // "pause" and "cont" only mark a parallel test yielding.
-            else -> Unit
+            // "pause" and "cont" normally carry no output, but preserve it if a toolchain adds any.
+            else -> output?.let { testOutput(packageName, test, it, event.string("OutputType")) }
+        }
+    }
+
+    private fun testOutput(packageName: String, test: String, output: String, outputType: String?) {
+        val pending = pending(packageName, test)
+        val text = strip(output, outputType) ?: return
+        if (PANIC.containsMatchIn(text)) pending.panicked = true
+        if (pending.suite) {
+            emit(
+                ServiceMessageBuilder.testStdOut(pending.node.name).node(pending.node.id)
+                    .addAttribute("out", text).line(),
+            )
+        } else {
+            pending.output.append(text)
         }
     }
 
     private fun close(packageName: String, test: String, outcome: Outcome, duration: Long?) {
         val pending = tests.remove(key(packageName, test)) ?: return
+        finish(pending, outcome, duration)
+    }
+
+    private fun finish(pending: Pending, outcome: Outcome, duration: Long?, ignoredMessage: String = "") {
         if (pending.suite) {
+            if (outcome == Outcome.FAILED) fail(pending)
             emit(ServiceMessageBuilder.testSuiteFinished(pending.node.name).node(pending.node.id).line())
             return
         }
         start(pending)
         when (outcome) {
-            // The failure text is the test's output, so it is reported once, as the failure details,
-            // rather than printed a second time above it.
-            Outcome.FAILED -> emit(
-                ServiceMessageBuilder.testFailed(pending.node.name).node(pending.node.id)
-                    .addAttribute("message", message(pending.output))
-                    .addAttribute("details", pending.output.toString())
-                    .line(),
-            )
+            Outcome.FAILED -> fail(pending)
             Outcome.PASSED -> flush(pending)
             Outcome.SKIPPED -> {
                 flush(pending)
                 emit(
                     ServiceMessageBuilder.testIgnored(pending.node.name).node(pending.node.id)
-                        .addAttribute("message", "").line(),
+                        .addAttribute("message", ignoredMessage).line(),
                 )
             }
         }
         val finished = ServiceMessageBuilder.testFinished(pending.node.name).node(pending.node.id)
         if (duration != null) finished.addAttribute("duration", duration.toString())
         emit(finished.line())
+    }
+
+    /** Prints every captured line, then marks the node failed without duplicating it as details. */
+    private fun fail(pending: Pending) {
+        val message = message(pending.output)
+        flush(pending)
+        emit(
+            ServiceMessageBuilder.testFailed(pending.node.name).node(pending.node.id)
+                .addAttribute("message", message)
+                .line(),
+        )
+    }
+
+    private fun closePackageTests(packageName: String) {
+        for ((key, pending) in tests.entries.toList().asReversed()) {
+            if (pending.packageName != packageName) continue
+            tests.remove(key)
+            finish(pending, Outcome.FAILED, null)
+        }
     }
 
     private fun start(pending: Pending) {
@@ -182,7 +203,7 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
             promote(packageName, test.substring(0, separator)).node.id
         }
         val node = Node(nextId++, parentId, test.substring(separator + 1), locationHint(packageName, test))
-        return Pending(node).also { tests[key(packageName, test)] = it }
+        return Pending(packageName, node).also { tests[key(packageName, test)] = it }
     }
 
     private fun promote(packageName: String, test: String): Pending {
@@ -201,7 +222,7 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
     }
 
     private fun packageNode(packageName: String): Node = packages.getOrPut(packageName) {
-        val node = Node(nextId++, ROOT_NODE_ID, packageName, "$PROTOCOL://$packageName")
+        val node = Node(nextId++, ROOT_NODE_ID, packageName, packageLocationHint(packageName))
         emit(
             ServiceMessageBuilder.testSuiteStarted(node.name)
                 .node(node.id)
@@ -238,9 +259,11 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
 
     private fun ServiceMessageBuilder.line(): String = toString() + "\n"
 
-    /** The first thing the test said, which is what the tree shows beside a failed node. */
+    /** A panic is the useful failure title even when ordinary logs preceded it. */
     private fun message(output: CharSequence): String =
-        output.lineSequence().firstOrNull { it.isNotBlank() }?.trim() ?: FAILED
+        output.lineSequence().firstOrNull { PANIC.containsMatchIn(it) }?.trim()
+            ?: output.lineSequence().firstOrNull { it.isNotBlank() }?.trim()
+            ?: FAILED
 
     /**
      * Drops `go test`'s own progress lines from a test's output. They repeat what the tree already
@@ -264,8 +287,6 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
 
     private fun key(packageName: String, test: String): String = "$packageName $test"
 
-    private fun locationHint(packageName: String, test: String): String = "$PROTOCOL://$packageName$SEPARATOR$test"
-
     companion object {
         /** The scheme [GoTestLocator] answers for, linking a node in the tree back to its source. */
         const val PROTOCOL: String = "go_test"
@@ -273,11 +294,17 @@ class GoTestEventTranslator(private val emit: (String) -> Unit) {
         /** Separates the package's import path from the test name inside a location hint. */
         const val SEPARATOR: String = "::"
 
+        /** The stable key used by tree navigation and IntelliJ's persisted test-state storage. */
+        fun locationHint(packageName: String, test: String): String = "$PROTOCOL://$packageName$SEPARATOR$test"
+
+        fun packageLocationHint(packageName: String): String = "$PROTOCOL://$packageName"
+
         private const val ROOT_NODE_ID = 0
         private const val INTERRUPTED = "Test did not finish"
         private const val FRAME = "frame"
         private const val FAILED = "Test failed"
 
+        private val PANIC = Regex("""^\s*panic:""")
         private val PROGRESS = Regex("""^\s*(===\s+(RUN|PAUSE|CONT|NAME)\b|---\s+(PASS|FAIL|SKIP|BENCH):)""")
     }
 }

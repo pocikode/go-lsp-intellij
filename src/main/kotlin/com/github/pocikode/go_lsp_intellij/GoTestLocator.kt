@@ -10,6 +10,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiElement
@@ -26,9 +27,8 @@ import java.util.concurrent.ConcurrentHashMap
  * module path is the prefix every package under it shares - which keeps navigation working without
  * `gopls`, and without asking the toolchain a second time.
  *
- * A subtest resolves to its parent test function. Go derives a subtest's name from the string
- * passed to `t.Run`, with spaces replaced by underscores, so there is generally nothing in the file
- * to match it against; the function that declares it is the useful place to land anyway.
+ * A statically named subtest resolves to its literal or table field. Dynamic names have no source
+ * declaration to match and fall back to their parent test function.
  */
 class GoTestLocator(private val workingDirectory: String) : SMTestLocator {
 
@@ -51,19 +51,21 @@ class GoTestLocator(private val workingDirectory: String) : SMTestLocator {
                 val psiDirectory = PsiManager.getInstance(project).findDirectory(directory)
                     ?: return@compute emptyList()
                 listOf(PsiLocation(project, psiDirectory))
-            } else {
-                listOfNotNull(declaration(project, directory, test.substringBefore('/')))
-            }
+            } else listOfNotNull(declaration(project, directory, test))
         }
     }
 
-    private fun declaration(project: Project, directory: VirtualFile, name: String): Location<*>? {
+    private fun declaration(project: Project, directory: VirtualFile, test: String): Location<*>? {
+        val name = test.substringBefore('/')
+        val subtest = test.substringAfter('/', "")
         for (file in directory.children) {
             if (!GoLspSupport.isGoTestFile(file)) continue
             // The document rather than the bytes on disk, so an edited file still lands on the
             // right line; go test ran against the saved text, but the user is looking at this one.
             val document = FileDocumentManager.getInstance().getDocument(file) ?: continue
-            val offset = GoTestFunctions.find(document.text).firstOrNull { it.name == name }?.nameOffset ?: continue
+            val declaration = GoTestFunctions.find(document.text).firstOrNull { it.name == name } ?: continue
+            val offset = declaration.subtests.firstOrNull { it.name == subtest }?.nameOffset
+                ?: declaration.nameOffset
             val psiFile = PsiManager.getInstance(project).findFile(file) ?: continue
             return GoTestLocation(project, psiFile, document.getLineNumber(offset))
         }
@@ -102,10 +104,6 @@ class GoTestLocator(private val workingDirectory: String) : SMTestLocator {
         return start
     }
 
-    private fun modulePath(goMod: VirtualFile): String? =
-        FileDocumentManager.getInstance().getDocument(goMod)?.text?.lineSequence()
-            ?.firstNotNullOfOrNull { MODULE.matchEntire(it.trim())?.groupValues?.get(1) }
-
     /**
      * A place in a Go file, by line.
      *
@@ -134,7 +132,25 @@ class GoTestLocator(private val workingDirectory: String) : SMTestLocator {
         override fun getNavigatable(): Navigatable = openFileDescriptor ?: file
     }
 
-    private companion object {
-        val MODULE = Regex("""module\s+(\S+)""")
+    companion object {
+        private val MODULE = Regex("""module\s+(\S+)""")
+
+        /** Maps a source directory to the package path emitted by `go test -json`. */
+        fun importPath(directory: VirtualFile): String? {
+            var candidate: VirtualFile? = directory
+            while (candidate != null) {
+                val module = candidate.findChild("go.mod")?.let(::modulePath)
+                if (module != null) {
+                    val relative = VfsUtilCore.getRelativePath(directory, candidate, '/') ?: return null
+                    return if (relative.isEmpty()) module else "$module/$relative"
+                }
+                candidate = candidate.parent
+            }
+            return null
+        }
+
+        private fun modulePath(goMod: VirtualFile): String? =
+            FileDocumentManager.getInstance().getDocument(goMod)?.text?.lineSequence()
+                ?.firstNotNullOfOrNull { MODULE.matchEntire(it.trim())?.groupValues?.get(1) }
     }
 }

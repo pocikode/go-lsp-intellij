@@ -3,16 +3,19 @@ package com.github.pocikode.go_lsp_intellij
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
+import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.util.Function
 import javax.swing.Icon
 
 /**
- * GoLand's green run arrows in the gutter of a `*_test.go` file: one per test function, and one on
- * the package clause for the whole file.
+ * GoLand-style run actions in the gutter of a `*_test.go` file: one per test function and static
+ * table case, and one on the package clause for the whole file. Completed actions keep the
+ * platform's standard passed or failed icon.
  *
  * This is a plain [LineMarkerProvider] rather than a `RunLineMarkerContributor`, which is the
  * normal way to put a run arrow in the gutter, because a contributor is offered PSI elements to
@@ -43,15 +46,18 @@ class GoTestLineMarkerProvider : LineMarkerProvider {
         val declarations = GoTestFunctions.find(text)
         if (declarations.isEmpty()) return
         val project = file.project
-        val directory = virtualFile.parent?.path ?: return
+        val parent = virtualFile.parent ?: return
+        val directory = parent.path
+        val packageName = GoTestLocator.importPath(parent)
 
         for (declaration in declarations) {
             val anchor = leaves.firstOrNull { it.textRange.containsOffset(declaration.nameOffset) } ?: continue
+            val testUrl = packageName?.let { GoTestEventTranslator.locationHint(it, declaration.name) }
             result.add(
                 marker(
                     anchor = anchor,
                     range = TextRange.from(declaration.nameOffset, declaration.name.length),
-                    icon = AllIcons.RunConfigurations.TestState.Run,
+                    icon = GoTestStateIcons.icon(testUrl, project, false),
                     tooltip = "Run '${declaration.name}'",
                 ) {
                     GoTestRunner.run(
@@ -63,6 +69,28 @@ class GoTestLineMarkerProvider : LineMarkerProvider {
                     )
                 },
             )
+
+            for (subtest in declaration.subtests) {
+                val subtestAnchor = leaves.firstOrNull { it.textRange.containsOffset(subtest.nameOffset) } ?: continue
+                val fullName = "${declaration.name}/${subtest.name}"
+                val subtestUrl = packageName?.let { GoTestEventTranslator.locationHint(it, fullName) }
+                result.add(
+                    marker(
+                        anchor = subtestAnchor,
+                        range = TextRange.from(subtest.nameOffset, subtest.nameLength.coerceAtLeast(1)),
+                        icon = GoTestStateIcons.icon(subtestUrl, project, false),
+                        tooltip = "Run '$fullName'",
+                    ) {
+                        GoTestRunner.run(
+                            project,
+                            fullName,
+                            directory,
+                            SINGLE_PACKAGE,
+                            GoTestFunctions.runPattern(listOf(fullName)),
+                        )
+                    },
+                )
+            }
         }
 
         val packageClause = PACKAGE_CLAUSE.find(text) ?: return
@@ -71,7 +99,11 @@ class GoTestLineMarkerProvider : LineMarkerProvider {
             marker(
                 anchor = anchor,
                 range = TextRange(packageClause.range.first, packageClause.range.last + 1),
-                icon = AllIcons.RunConfigurations.TestState.Run_run,
+                icon = GoTestStateIcons.icon(
+                    packageName?.let { GoTestEventTranslator.packageLocationHint(it) },
+                    project,
+                    true,
+                ),
                 tooltip = "Run tests in ${virtualFile.name}",
             ) {
                 GoTestRunner.run(
@@ -106,5 +138,16 @@ class GoTestLineMarkerProvider : LineMarkerProvider {
         const val SINGLE_PACKAGE = "."
 
         val PACKAGE_CLAUSE = Regex("""(?m)^package[ \t]+\w+""")
+
+    }
+}
+
+/** Exposes the platform's standard persisted red/green test-state icon to the offset-based marker. */
+private object GoTestStateIcons : RunLineMarkerContributor() {
+    override fun getInfo(element: PsiElement): Info? = null
+
+    fun icon(url: String?, project: Project, suite: Boolean): Icon = when (url) {
+        null -> if (suite) AllIcons.RunConfigurations.TestState.Run_run else AllIcons.RunConfigurations.TestState.Run
+        else -> getTestStateIcon(url, project, suite)
     }
 }
