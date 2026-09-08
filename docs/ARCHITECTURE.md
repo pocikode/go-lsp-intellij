@@ -28,6 +28,10 @@ Go toolchain and workspace
 - `GoStructTags` and `GoLspStructTagAnnotator`: find the `key:` of each struct tag from the file text and paint it apart from the rest of the raw string, as GoLand does. `GoStructTags` is pure text handling and carries the tests.
 - `GoLspColors`: the Go colour keys, under GoLand's external names, shared by the mapping and the extensions above without pulling in the LSP module.
 - `GoLspTestSourcesFilter`: reports `*_test.go` as test sources, putting them in the platform's built-in "Tests" scope so File Colors tints them green, as in GoLand.
+- `GoTodoComments` and `GoTodoPatternBuilder`: scan Go comments and expose their ranges through the
+  platform's `IndexPatternBuilder`. TextMate already indexes TODO words as candidate matches but its
+  PSI lexer is empty, so exact TODO items, the Current File view, and navigation need this Go-only
+  lexer. The platform still owns configured patterns, filtering, highlighting, and the tool window.
 - `GoLspFileIconProvider`: gives `.go` and the Go module files a Go icon in the project view and editor tabs, standing down when the native Go plugin is loaded.
 - `GoLspSupport`: shared Go-file, Go-module-file, and native-plugin checks.
 - `GoLspDiscovery`: searches configured and conventional executable locations.
@@ -61,7 +65,7 @@ Go toolchain and workspace
 
 ## Descriptor Layout
 
-`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, TODO comment ranges, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
 
 The runners stay on the other side of that line. Nothing in them asks `gopls` anything: main and test declarations come from file text, programs use `go run`, and the test tree comes from `go test -json`. They therefore work in a build with no LSP module. Keep them that way; reaching for `documentSymbol` to find either declaration would lose that property.
 

@@ -21,6 +21,21 @@
 - Main-function runner: a run arrow on `func main()`, a "Go Run" configuration, and `go run .` output in the platform Run tool window
 - Go test runner: last-result gutter icons for tests and statically named table cases, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`
 
+- TODO tool-window items from Go line and block comments, including Project and Current File views,
+  custom TODO patterns, highlighting, and source navigation
+
+## TODO Tool Window
+
+The platform's TextMate support indexes TODO-looking words, which is enough to identify candidate
+files, but its PSI lexer is empty. The TODO tool window then has no exact occurrences to put under a
+file, and therefore no source offsets to navigate to. `GoTodoPatternBuilder` supplies those missing
+comment ranges for `.go` files while leaving the platform's configured patterns and UI in charge.
+
+Only actual Go comments are searched. Comment markers inside interpreted strings, raw strings, and
+rune literals are skipped. The platform's existing TextMate index remains a candidate superset, so a
+file containing a configured pattern only inside a string can briefly be considered during a project
+scan, but it contributes no visible TODO item.
+
 ## Code Vision Above A Declaration
 
 GoLand shows three things above a Go declaration, and all three are here.

@@ -37,6 +37,14 @@ The plugin deliberately does **not** implement `VcsCodeVisionLanguageContext`, t
 the platform offers for contributing a code author vision to a language. It cannot work for Go here;
 see `docs/ARCHITECTURE.md`.
 
+Go TODO items use the platform's `IndexPatternBuilder` extension. The interface is intended for
+language integrations but lives in `com.intellij.psi.impl.search`, so it is a platform compatibility
+risk and must remain covered by compilation, plugin structure verification, and Plugin Verifier.
+The bundled TextMate `PlainTextTodoIndexer` is deliberately retained: replacing its shared
+`textmate` registration would affect every TextMate-backed language and require the internal
+`TodoIndexEntry` API. It may over-index a TODO-looking string as a candidate, but the Go builder's
+comment ranges prevent that candidate from becoming a visible item.
+
 The platform client declares no `documentSymbol` or `workspace/symbol` client capabilities, so
 `GoLspServerDescriptor` overrides `clientCapabilities` to add them. If a future platform release
 declares them itself, that override should be re-checked rather than removed blindly - `gopls`
@@ -102,6 +110,9 @@ Future managed installation must support selecting a Go version without changing
   single PSI leaf per file. A future TextMate release that produces real per-token leaves would not
   break anything, but it would make the platform's own code author vision reusable and this
   plugin's worth revisiting.
+- TODO discovery depends on the platform continuing to run `IndexPatternBuilder` after its
+  file-based TODO index finds a candidate. The builder is ordered after TextMate's empty builder so
+  its Go lexer supplies the exact ranges.
 - The gutter arrows find test functions by matching the file's text. A `func TestX(` written at the
   start of a line inside a raw string literal would be matched; nothing else in Go's grammar can
   produce a false positive there.

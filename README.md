@@ -22,6 +22,8 @@ The first milestone is the server integration foundation:
 - LSP-backed diagnostics, completion, hover, go-to-definition, find usages, code actions, formatting, folding, and inlay hints
 - Cmd/Ctrl+hover link styling, Cmd/Ctrl+click navigation, and usages popup on declarations, as in GoLand
 - GoLand's code vision above every Go declaration: a usage count, the last committer, and "Implement interface"
+- TODO tool-window support for `TODO`, `FIXME`, and custom TODO patterns in Go comments, including
+  the Project and Current File views and navigation to the matching source
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
 - A GoLand-style run arrow on `func main()`, backed by an editable "Go Run" configuration and `go run .`
 - GoLand's test runner: gutter icons that retain the last pass/fail state, per-case actions for statically named table tests, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed

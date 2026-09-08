@@ -43,6 +43,13 @@
         <annotator language="textmate"
                    implementationClass="com.github.pocikode.go_lsp_intellij.GoLspStructTagAnnotator" />
         <!--
+            TextMate indexes TODO words as candidates but exposes an empty PSI lexer, so the TODO
+            tool window cannot recover exact items or navigate them. This Go-only lexer contributes
+            real comment ranges; `order="last"` makes it win over TextMate's empty builder.
+        -->
+        <indexPatternBuilder implementation="com.github.pocikode.go_lsp_intellij.GoTodoPatternBuilder"
+                             order="last" />
+        <!--
             Makes *_test.go a member of the platform's built-in "Tests" scope, which File Colors
             already paints green; Go has no test source root for the platform to find by itself.
         -->
