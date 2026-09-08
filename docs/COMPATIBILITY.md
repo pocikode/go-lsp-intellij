@@ -5,7 +5,7 @@
 - IntelliJ Platform: 2026.2 (compiled against the locally installed IntelliJ IDEA 2026.2.2)
 - Since-build: `262.10315`
 - Product target: IntelliJ IDEA
-- Build JDK: 25, from the installed IDE runtime
+- Build JDK: 25, from the local Java installation or IDE runtime
 - Plugin bytecode: Java 25
 - LSP client: IntelliJ LSP API (`com.intellij.modules.lsp`)
 - Language server: installed `gopls`

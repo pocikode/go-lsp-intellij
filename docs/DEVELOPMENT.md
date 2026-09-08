@@ -2,9 +2,11 @@
 
 ## Local Setup
 
-Install IntelliJ IDEA in `/Applications/IntelliJ IDEA.app`. The build uses that installation as both
-its IntelliJ Platform dependency and its Java 25 toolchain, so it does not download an IDE into the
-Gradle cache. Override the location with `-PplatformPath=/path/to/IntelliJ IDEA.app`.
+Install IntelliJ IDEA 2026.2 locally. The build uses that installation as its IntelliJ Platform
+dependency and does not download an IDE into the Gradle cache. JetBrains Toolbox installations on
+Linux, macOS, and Windows are discovered automatically. Override the location with
+`-PplatformPath=/path/to/IntelliJ IDEA` or `INTELLIJ_PLATFORM_PATH` when necessary. Gradle uses any
+installed Java 25 runtime; set `JAVA_HOME` or configure Gradle's toolchain paths if it is not found.
 
 Verify Go tooling:
 
@@ -102,7 +104,7 @@ Before publishing:
   failures link to their lines, and rerun-failed re-runs only what failed.
 - Run the tests of a package with no `go.mod` above it, and of a package that fails to compile, and
   confirm the console shows the toolchain's error rather than an empty tree.
-- Test macOS ARM64 and Linux x64 process startup.
+- Test process startup on the supported host platforms, including Linux x64 and macOS ARM64.
 - Open `go.mod` and `go.work` and verify hover, navigation, diagnostics, and dependency quick fixes;
   run each Tools | Go Modules action in a disposable module, then confirm the Go Dependencies view
   refreshes versions, replacements, updates, retractions, graph edges, and `govulncheck` findings.

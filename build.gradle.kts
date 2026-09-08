@@ -4,6 +4,51 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.18.1"
 }
 
+import java.io.File
+
+fun findLocalIntelliJ(): String {
+    val home = File(System.getProperty("user.home"))
+    val candidates = buildList {
+        val explicit = System.getenv("INTELLIJ_PLATFORM_PATH")
+        if (!explicit.isNullOrBlank()) add(File(explicit))
+
+        if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
+            System.getenv("LOCALAPPDATA")?.let { add(File(it, "JetBrains/Installations")) }
+            System.getenv("PROGRAMFILES")?.let { add(File(it, "JetBrains/IntelliJ IDEA")) }
+        } else {
+            add(File(home, ".local/share/JetBrains/Toolbox/apps/intellij-idea"))
+            add(File(home, ".local/share/JetBrains/Toolbox/apps/IDEA-U"))
+            add(File(home, ".local/share/JetBrains/Toolbox/apps/IDEA-C"))
+            add(File(home, "Applications/IntelliJ IDEA.app"))
+            add(File("/Applications/IntelliJ IDEA.app"))
+        }
+    }
+
+    val installation = candidates.asSequence()
+        .flatMap { candidate ->
+            sequenceOf(candidate) + if (candidate.isDirectory) {
+                candidate.listFiles()?.asSequence()?.filter { it.isDirectory } ?: emptySequence()
+            } else {
+                emptySequence()
+            }
+        }
+        .firstOrNull {
+            File(it, "product-info.json").isFile ||
+                File(it, "lib/idea.jar").isFile ||
+                File(it, "lib/platform-loader.jar").isFile
+        }
+
+    return installation?.absolutePath
+        ?: error(
+            "IntelliJ IDEA installation not found. Set -PplatformPath=/path/to/IntelliJ IDEA " +
+                "or INTELLIJ_PLATFORM_PATH."
+        )
+}
+
+val platformPath = providers.gradleProperty("platformPath")
+    .orElse(providers.environmentVariable("INTELLIJ_PLATFORM_PATH"))
+    .orElse(provider { findLocalIntelliJ() })
+
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
@@ -17,8 +62,8 @@ repositories {
 dependencies {
     intellijPlatform {
         // Compile against the user's installed IntelliJ IDEA instead of downloading an IDE into
-        // Gradle's cache. Override platformPath when IDEA is installed somewhere else.
-        local(providers.gradleProperty("platformPath").get())
+        // Gradle's cache. The path can be supplied explicitly or discovered from common installs.
+        local(platformPath.get())
         bundledModule("intellij.platform.testRunner")
         bundledModule("intellij.platform.smRunner")
     }

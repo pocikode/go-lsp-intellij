@@ -12,10 +12,10 @@
 ## Build
 
 - The build targets the locally installed IntelliJ IDEA `2026.2.2` / since-build `262.10315`, uses the IntelliJ LSP API, compiles plugin bytecode for Java 25, and uses the IDE's bundled Java 25 runtime.
-- The platform dependency is `/Applications/IntelliJ IDEA.app` by default and can be overridden with `-PplatformPath=/path/to/IntelliJ IDEA.app`. Keep it local: do not replace it with an `intellijIdea(...)` dependency or a release selector that downloads a full IDE into Gradle's cache.
-- The repository points Gradle toolchain discovery at the installed IDE's Java 25 runtime. The standard Gradle wrapper downloads the configured Gradle version (`9.7.1`) automatically.
+- The platform dependency is discovered from common local JetBrains Toolbox and OS installation locations on Linux, macOS, and Windows. Override it with `-PplatformPath=/path/to/IntelliJ IDEA` or `INTELLIJ_PLATFORM_PATH`. Keep it local: do not replace it with an `intellijIdea(...)` dependency or a release selector that downloads a full IDE into Gradle's cache.
+- The build uses a locally installed Java 25 runtime, preferring the environment/toolchain configuration rather than a macOS-only IDE path. The standard Gradle wrapper downloads the configured Gradle version (`9.7.1`) automatically.
 - `gopls` is an external runtime prerequisite. The plugin currently does not download it; use an installed executable or configure its full path in `Settings | Tools | Go LSP`.
-- `go` itself is a runtime prerequisite of the test runner, found by `GoLspDiscovery.findGoTool`. There is no setting for it: `PATH` and the conventional install locations are searched, `/usr/local/go/bin` included, because an IDE launched from Finder does not inherit the user's shell `PATH`.
+- `go` itself is a runtime prerequisite of the test runner, found by `GoLspDiscovery.findGoTool`. There is no setting for it: `PATH`, `GOROOT`, `GOPATH`, and conventional install locations are searched because an IDE launched from a desktop entry may not inherit the user's shell `PATH`.
 - Useful commands:
   - `./gradlew test` runs the JUnit 5 tests under `src/test/kotlin`.
   - `./gradlew buildPlugin` builds `build/distributions/go-lsp-intellij-<version>.zip`.

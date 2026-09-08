@@ -169,8 +169,9 @@ IntelliJ Go SDK or module project model.
 
 ## Development
 
-The build uses the Java 25 runtime inside `/Applications/IntelliJ IDEA.app`. Override the IDE path
-with `-PplatformPath=/path/to/IntelliJ IDEA.app`, then run:
+The build uses a locally installed IntelliJ IDEA as its platform dependency. It discovers common
+JetBrains Toolbox and OS installation locations on Linux, macOS, and Windows. Override the IDE path
+with `-PplatformPath=/path/to/IntelliJ IDEA` or `INTELLIJ_PLATFORM_PATH`, then run:
 
 ```sh
 ./gradlew buildPlugin
