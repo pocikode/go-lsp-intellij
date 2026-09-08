@@ -30,6 +30,15 @@ object GoLspDiscovery {
         return candidates.firstOrNull { it.isFile && it.canExecute() }?.absolutePath
     }
 
+    /**
+     * A Go toolchain executable - `go`, `gofmt`, `goimports` - by name.
+     *
+     * `PATH` is tried first and is usually enough, but an IDE launched from Finder or a desktop
+     * entry inherits a login shell's `PATH` rather than the user's, so the conventional install
+     * locations are tried too. `/usr/local/go/bin` is where the official Go installer puts `go` and
+     * `gofmt`, which is the case a `gopls`-shaped search would miss: `gopls` is `go install`ed into
+     * `GOPATH/bin`, and the toolchain itself is not.
+     */
     fun findGoTool(name: String): String? {
         val pathCandidate = System.getenv("PATH")
             ?.split(File.pathSeparator)
@@ -44,8 +53,9 @@ object GoLspDiscovery {
             goRoot?.let { File(it, "bin/${toolName(name)}") },
             goPath?.let { File(it, "bin/${toolName(name)}") },
             File(System.getProperty("user.home"), "go/bin/${toolName(name)}"),
+            if (SystemInfo.isUnix) File("/usr/local/go/bin/${toolName(name)}") else null,
             if (SystemInfo.isMac) File("/opt/homebrew/bin/${toolName(name)}") else null,
-            if (SystemInfo.isLinux) File("/usr/local/bin/${toolName(name)}") else null,
+            if (SystemInfo.isUnix) File("/usr/local/bin/${toolName(name)}") else null,
         ).filterNotNull()
 
         return candidates.firstOrNull { it.isFile && it.canExecute() }?.absolutePath

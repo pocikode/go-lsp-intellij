@@ -47,5 +47,21 @@
             already paints green; Go has no test source root for the platform to find by itself.
         -->
         <testSourcesFilter implementation="com.github.pocikode.go_lsp_intellij.GoLspTestSourcesFilter" />
+        <!--
+            Running Go tests. None of this needs com.intellij.platform.lsp: the tree is built from
+            `go test -json` and the gutter arrows from the file's own text, so tests run in a build
+            with no LSP module, where the rest of the plugin cannot. Keep it registered here.
+        -->
+        <configurationType implementation="com.github.pocikode.go_lsp_intellij.GoTestRunConfigurationType" />
+        <!--
+            The green run arrows. A runLineMarkerContributor would be the usual extension point, but
+            it is offered PSI elements to recognise and a TextMate .go file is a single leaf; this
+            provider places its markers by offset instead. Registered for the TextMate language
+            because that is what claims .go files without the native Go plugin.
+        -->
+        <codeInsight.lineMarkerProvider language="textmate"
+                                        implementationClass="com.github.pocikode.go_lsp_intellij.GoTestLineMarkerProvider" />
+        <!-- Turns the foo_test.go:12 prefix of a test failure into a link to that line. -->
+        <consoleFilterProvider implementation="com.github.pocikode.go_lsp_intellij.GoTestConsoleFilterProvider" />
     </extensions>
 </idea-plugin>

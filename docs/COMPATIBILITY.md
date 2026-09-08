@@ -9,12 +9,13 @@
 - Plugin bytecode: Java 21
 - LSP client: IntelliJ LSP API (`com.intellij.modules.lsp`)
 - Language server: installed `gopls`
+- Test runner: installed `go`, through `go test -json`
 
 ## IntelliJ Editions
 
 The LSP API ships in the IntelliJ IDEA (Ultimate) distribution and in the other commercial JetBrains IDEs. Since 2025.2.1 it works without a paid license, and since 2025.3 there is a single IntelliJ IDEA distribution, so the plugin is compiled against IU.
 
-The IntelliJ IDEA Community 2025.2 build and Android Studio do not contain the module. The dependency on `com.intellij.modules.lsp` is optional, so the plugin still installs there; only the `gofmt` format-on-save action works. JetBrains announced that the LSP client is open-sourced starting with 2026.1.4, which will extend it to those products.
+The IntelliJ IDEA Community 2025.2 build and Android Studio do not contain the module. The dependency on `com.intellij.modules.lsp` is optional, so the plugin still installs there; the `gofmt` format-on-save action and the whole test runner work, because neither asks `gopls` anything. JetBrains announced that the LSP client is open-sourced starting with 2026.1.4, which will extend it to those products.
 
 The plugin must not depend on `com.intellij.modules.ultimate`. Go files are associated by extension so the bundled TextMate Go grammar remains active.
 
@@ -39,6 +40,35 @@ The platform client declares no `documentSymbol` or `workspace/symbol` client ca
 `GoLspServerDescriptor` overrides `clientCapabilities` to add them. If a future platform release
 declares them itself, that override should be re-checked rather than removed blindly - `gopls`
 changes what it returns based on what is declared.
+
+## Platform APIs Behind The Test Runner
+
+None of these need the LSP module; all of them ship in every IntelliJ IDEA build:
+
+- `SMTRunnerConsoleProperties`, `SMCustomMessagesParsing`, `OutputToGeneralTestEventsConverter`,
+  `SMTestRunnerConnectionUtil` and `ServiceMessageBuilder`, for the test tree.
+- `isIdBasedTestTree` with `nodeId`/`parentNodeId` attributes, which is what makes the tree
+  independent of the order Go reports parallel tests in.
+- `SMTestLocator` and a `Location` subclass of the plugin's own. `PsiLocation` navigates to the
+  element it is given, and a TextMate `.go` file has exactly one, so every test would open at the
+  top of its file; the line is known, so the descriptor is built from it directly.
+- `AbstractRerunFailedTestsAction` and its `MyRunProfile`, for rerun-failed.
+- `LineMarkerProvider`, used instead of `RunLineMarkerContributor`, and no `RunConfigurationProducer`
+  at all. Both of those are handed PSI elements to recognise; see `docs/ARCHITECTURE.md`.
+- `com.google.gson`, which the platform bundles and lsp4j already depends on, for parsing the
+  `go test -json` stream.
+
+## Go Toolchain For Tests
+
+The test runner shells out to `go test -json`. `-json` has been available since Go 1.10, and the
+event fields used - `Action`, `Package`, `Test`, `Output`, `Elapsed` - have been stable since. A
+recent addition is `OutputType`, which labels the toolchain's own `=== RUN` and `--- PASS` lines
+(present in go 1.27, the version this was verified against); it is used when present and a pattern
+is the fallback when it is not, so both old and new toolchains behave the same.
+
+No flag newer than `-json` is passed. `-fullpath` would make failure locations absolute and remove
+the need to resolve a bare filename through the filename index, but it does not exist before Go
+1.21 and an unknown flag makes `go test` fail outright.
 
 ## API Names
 
@@ -65,6 +95,13 @@ Future managed installation must support selecting a Go version without changing
   single PSI leaf per file. A future TextMate release that produces real per-token leaves would not
   break anything, but it would make the platform's own code author vision reusable and this
   plugin's worth revisiting.
+- The gutter arrows find test functions by matching the file's text. A `func TestX(` written at the
+  start of a line inside a raw string literal would be matched; nothing else in Go's grammar can
+  produce a false positive there.
+- A test appears in the test tree when it finishes rather than when it starts. See
+  `docs/ARCHITECTURE.md` for why the alternative is worse.
+- `go test` reports a failure's location by base filename, resolved through the filename index. Two
+  files with the same name in different packages can send the link to the wrong one.
 - Reference counts cost one `textDocument/references` call per declaration. They are cached and
   computed in the background, capped at 200 declarations per file and four concurrent requests, but
   a very large workspace still makes them slow to appear.

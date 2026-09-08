@@ -44,10 +44,21 @@ Go toolchain and workspace
 - `GoLspFormatting`: runs Go source text through the local toolchain - `gofmt`, then `goimports` when it is enabled and installed. Shared by format-on-save and by "Implement interface"; every entry point blocks on an external process and must be called off the UI thread.
 - `GoFormatOnSave`: registers the project-level Actions on Save integration and sends the current in-memory `.go` document through `GoLspFormatting`.
 - `GoFormatOnSaveState`: persists the format-on-save choice per project.
+- `GoTestFunctions`: finds the test declarations in a Go file's text and builds the `-run` patterns that select them. Pure text handling, and where the tests are.
+- `GoTestEventTranslator`: turns the `go test -json` event stream into the service messages the platform's SM test runner builds its tree from. Nodes are id-based and a test's start is deferred; see below. Anything that is not an event - a compiler error, a panic - passes through to the console untouched.
+- `GoTestRunConfiguration`, `GoTestRunConfigurationType` and `GoTestSettingsEditor`: the "Go Test" run configuration. It stores the `go test` command line - directory, package pattern, `-run` pattern, extra flags, environment - rather than a friendlier abstraction over it, so what the gutter generated stays readable and editable.
+- `GoTestRunningState`: builds and starts the `go test -json` process and attaches the SM console to it.
+- `GoTestConsoleProperties`: wires the converter, the locator and the rerun-failed action to the platform runner, and turns on the id-based tree. `GoTestEventsConverter` and `GoTestRerunFailedAction` live beside it.
+- `GoTestLocator`: resolves a node in the tree back to a line in a Go file, mapping an import path to a directory through the module path in `go.mod`.
+- `GoTestLineMarkerProvider`: the gutter arrows, placed by offset rather than by PSI element; see below.
+- `GoTestRunner`: creates or reuses a run configuration for a test, a file or a package and starts it, which is what a `RunConfigurationProducer` would normally do.
+- `GoTestOutputFilter` and `GoTestConsoleFilterProvider`: turn the `foo_test.go:12` in front of a failure into a link to that line.
 
 ## Descriptor Layout
 
-`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, and format-on-save. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, format-on-save, and the whole test runner. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+
+The test runner is deliberately on the other side of that line. Nothing in it asks `gopls` anything - the tree comes from `go test -json` and the gutter arrows from the file's own text - so tests run in a build with no LSP module, where the rest of the plugin cannot. Keep it that way: reaching for `documentSymbol` to find test functions would be the easy way to lose it.
 
 ## Process Lifecycle
 
@@ -75,6 +86,36 @@ declarations come from `textDocument/documentSymbol` instead, and the entries ar
 The providers still join the platform's settings groups (`references` for usages,
 `vcs.code.vision` for the author), so the switches under `Settings | Editor | Inlay Hints | Code
 Vision` govern them as a user would expect.
+
+## Why The Test Runner Places Its Own Gutter Markers
+
+The platform's route from a click in the gutter to a run is a `RunLineMarkerContributor`, which is
+offered PSI elements and returns an `Info` for the ones it recognises, paired with a
+`RunConfigurationProducer` that turns a PSI location into a configuration. Neither has anything to
+work with here, for the same reason the code vision is plugin-owned: the bundled TextMate grammar
+parses a whole `.go` file into a single PSI leaf, so a contributor would only ever be asked about
+"the whole file" and could place at most one arrow, at line 1.
+
+`GoTestLineMarkerProvider` therefore builds `LineMarkerInfo`s itself, with explicit ranges inside
+that leaf, from the declarations `GoTestFunctions` reads out of the text. `GoTestRunner` does what
+a producer would have done. If a future TextMate release gives `.go` files a real PSI, both become
+replaceable by the platform's own machinery - check that before extending either.
+
+## Why A Test Appears In The Tree When It Finishes
+
+The SM test runner creates a node as either a test or a suite, decided by the message that starts
+it. In Go that is not knowable in advance: `TestFoo` is a suite if and only if some `TestFoo/case`
+runs, and Go reports `run TestFoo` before it can know either. `GoTestEventTranslator` therefore
+holds a test's start until its outcome arrives, by which point every subtest that will ever run has
+already claimed it as a parent.
+
+The alternative - starting every test eagerly and correcting later - has no correction to make: a
+node that has been announced as a test cannot become a suite, and finishing it to reopen it as one
+would show a phantom pass. Deferring costs liveness for a slow test and is the smaller price.
+
+Node ids are used for the same family of reasons. Go interleaves the events of parallel tests, so
+the ordering a stack-shaped protocol depends on is not there; `isIdBasedTestTree` and explicit
+`parentNodeId` attributes make ordering irrelevant.
 
 ## Why There Is No Native Go PSI
 

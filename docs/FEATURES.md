@@ -18,6 +18,7 @@
 - Code vision above every Go declaration: usage count, code author, and "Implement interface"
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
+- Go test runner: run arrows in the gutter of a `*_test.go` file, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`
 
 ## Code Vision Above A Declaration
 
@@ -184,15 +185,56 @@ The IntelliJ LSP client implements these capabilities itself; the plugin only de
 
 Each capability also requires `gopls` to advertise it. The platform's go-to-declaration support is disabled for Go on purpose; the plugin implements navigation itself (see the foundation list above).
 
+## Running Tests
+
+The test runner is built on `go test -json`, which reports every test's start, output, outcome and
+duration as one JSON object per line. That is the whole reason a GoLand-like tree is possible here
+without a Go parser: `GoTestEventTranslator` turns those events into the service messages the
+platform's SM test runner builds its tree from, and nothing in the path has to understand Go.
+
+Two decisions in that translation are worth knowing:
+
+- Nodes carry `nodeId`/`parentNodeId` rather than relying on message order. Go interleaves the
+  events of parallel tests, and a stack-shaped protocol would nest them wrongly.
+- A test's start is held back until its outcome is known. A node is created as either a test or a
+  suite by the message that starts it, and whether `TestFoo` is a suite is only decided by whether
+  `TestFoo/case` ever runs. The cost is that a test appears in the tree when it finishes; package
+  progress and package-level output stay live.
+
+`go test`'s own `=== RUN` and `--- PASS` lines are kept out of a test's output pane. Recent Go
+versions label exactly those lines `"OutputType":"frame"`, which is used when present; a pattern is
+the fallback for a toolchain that does not report the field, and is dropped for the rest of the run
+as soon as one event shows that it does.
+
+### The Gutter Arrows
+
+The arrows are a plain `LineMarkerProvider`, not the `RunLineMarkerContributor` that normally puts a
+run arrow in the gutter, and there is no `RunConfigurationProducer`. Both of those are handed PSI
+elements to recognise, and the bundled TextMate grammar parses a whole `.go` file into a single PSI
+leaf - the same reason the code vision is plugin-owned. `GoTestFunctions` finds the test
+declarations in the file's text instead, and the markers are placed by offset inside that leaf.
+
+Reading the text rather than asking `gopls` is deliberate twice over: the arrows are there the
+moment a file opens, and they are there in a build with no LSP module at all, where `go test` runs
+perfectly well. Everything in this feature is registered in `plugin.xml` rather than `go-lsp.xml`
+for that reason.
+
+### Navigation From The Tree
+
+`GoTestLocator` resolves a node back to its source. The tree only knows the package's import path
+and the test's name, and turning an import path into a directory is a string operation once `go.mod`
+has been read: the module path is the prefix every package under it shares. A subtest resolves to
+its parent test function, because Go derives a subtest's name from the string passed to `t.Run`,
+with spaces replaced by underscores, so there is usually nothing in the file to match.
+
 ## Not Yet Implemented
 
 - Automatic `gopls` download
 - Go version selection
 - Go SDK/project model integration
-- Run configurations
-- `go test` integration
 - Coverage
 - Delve debugging
+- Debugging a test (the gutter offers Run only)
 - Go-specific native inspections
 - Native Go refactorings beyond what the platform LSP client provides
 - GoLand conflict handling beyond skipping the server when the native plugin is loaded

@@ -11,11 +11,18 @@
 ## Phase 2: Core Plus
 
 - Go SDK and workspace discovery.
-- `go.mod` and multi-module awareness.
-- Run configurations.
-- `go test`, benchmarks, and subtests.
+- `go.mod` and multi-module awareness. The test runner reads the module path out of the nearest
+  `go.mod` to map an import path to a directory; a workspace with several modules is the case to
+  check first.
+- ~~Run configurations.~~ Done: a "Go Test" configuration and gutter arrows.
+- ~~`go test`, benchmarks, and subtests.~~ Done: the platform test tree from `go test -json`, with
+  subtests nested and rerun-failed. Benchmarks run and are reported, but their results are only
+  console output; a benchmark's ns/op is not shown in the tree.
+- A "Go Build" / `go run` configuration, which nothing offers yet.
+- Debugging a test. The gutter offers Run only; Delve speaks DAP natively (`dlv dap`) and the
+  platform has DAP support, but that API is still moving. See Phase 4.
 - `go fmt`, `goimports`, `go vet` actions.
-- Coverage integration.
+- Coverage integration, through `go test -coverprofile` and `CoverageEngine`.
 - Improved status and project diagnostics.
 
 ## Phase 3: Managed Toolchains
@@ -31,7 +38,7 @@
 - Detect native Go support.
 - Revisit the plugin-owned code vision if a future TextMate release gives `.go` files a real PSI, which would make the platform's own usage and code author visions reusable.
 - Decide whether to coexist, disable duplicate features, or provide an explicit LSP mode.
-- Modern Delve integration.
+- Modern Delve integration, which is also what would put a Debug action beside the test runner's Run.
 - Native project model integrations where LSP is insufficient.
 - Go-specific inspections and refactorings.
 - Performance profiling for large monorepos.
