@@ -23,6 +23,7 @@ The first milestone is the server integration foundation:
 - Cmd/Ctrl+hover link styling, Cmd/Ctrl+click navigation, and usages popup on declarations, as in GoLand
 - GoLand's code vision above every Go declaration: a usage count, the last committer, and "Implement interface"
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
+- A GoLand-style run arrow on `func main()`, backed by an editable "Go Run" configuration and `go run .`
 - GoLand's test runner: green run arrows in the gutter of a `*_test.go` file, a "Go Test" run configuration, and the platform's test tree built from `go test -json`, with subtests nested, failures navigable, and rerun-failed
 
 Signature help, structure view, and call hierarchy are provided by the platform starting with IntelliJ IDEA 2025.3. See [docs/FEATURES.md](docs/FEATURES.md) for the full matrix.
@@ -45,6 +46,16 @@ declaration, as in GoLand.
 The entries appear a moment after a file opens rather than instantly: they are computed from `gopls`
 in the background, not during highlighting. Authors come from the file as last saved, so a file with
 unsaved edits keeps the previous names until it is saved again.
+
+## Running Programs
+
+A `func main()` declaration in `package main` gets a green run arrow. Clicking it creates or reuses a
+"Go Run" configuration and runs `go run .` from the file's directory. Running the package rather
+than only the open file includes the other `.go` files that make up the command.
+
+`Run | Edit Configurations | Go Run` exposes the working directory, package or file target, Go tool
+arguments, program arguments, and environment variables. Output and process controls use the normal
+Run tool window.
 
 ## Running Tests
 
@@ -71,18 +82,18 @@ is in. Package-level progress and output stay live.
 directory, package pattern, `-run` pattern, extra `go test` flags such as `-race`, and environment
 variables - so anything the gutter generated can be adjusted by hand.
 
-This part of the plugin needs only the `go` executable. It works in an IntelliJ build with no LSP
-module, where the rest of the plugin cannot run.
+The program and test runners need only the `go` executable. They work in an IntelliJ build with no
+LSP module, where the editor integration cannot run.
 
 ## Requirements
 
-- IntelliJ IDEA 2025.2.1 or newer (the standard IntelliJ IDEA download; no license required)
-- Java 21 for building
+- IntelliJ IDEA 2026.2.2 or newer
+- The Java 25 runtime bundled with IntelliJ IDEA for building
 - Go installed on the machine
 - `gopls` installed and executable
 - `gofmt` available from the Go installation
 
-The 2025.2 Community Edition build does not contain the LSP module. The plugin installs there, but only format-on-save works. From 2025.3 there is a single IntelliJ IDEA distribution and LSP support is available to everyone.
+The plugin now targets the installed IntelliJ IDEA 2026.2 line. Older IDE builds reject it.
 
 Install `gopls` with:
 
@@ -100,7 +111,8 @@ The plugin does not download `gopls` yet. Automatic installation and selecting a
 
 ## Development
 
-Set `JAVA_HOME` to a JDK 21 installation, then run:
+The build uses the Java 25 runtime inside `/Applications/IntelliJ IDEA.app`. Override the IDE path
+with `-PplatformPath=/path/to/IntelliJ IDEA.app`, then run:
 
 ```sh
 ./gradlew buildPlugin
@@ -125,7 +137,7 @@ To format Go files automatically when saving, enable `Reformat Go files with gof
 
 ## Product Compatibility
 
-The target is the IntelliJ IDEA distribution 2025.2.1 and newer. The plugin declares an optional dependency on the `com.intellij.modules.lsp` module, which JetBrains ships in IntelliJ IDEA and the other commercial IDEs.
+The target is IntelliJ IDEA 2026.2.2 and newer. The plugin declares an optional dependency on the `com.intellij.modules.lsp` module.
 
 GoLand already includes JetBrains' native Go plugin. When that plugin is actually loaded, this plugin does not start `gopls`, so the two do not produce duplicate navigation results. A Go plugin that is installed but cannot load, for example without an Ultimate subscription, does not block `gopls`. GoLand support beyond that guard is a future compatibility project.
 

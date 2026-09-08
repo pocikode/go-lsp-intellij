@@ -7,9 +7,9 @@
     <!--
         The IntelliJ LSP API ships in the IntelliJ IDEA (Ultimate) distribution and, since 2025.2,
         works without a paid license. The dependency is optional so the plugin still installs in
-        builds without the module (Community 2025.2, Android Studio); only the gofmt/goimports
-        format-on-save action works there. Everything that touches com.intellij.platform.lsp lives
-        in go-lsp.xml.
+        builds without the module (Community 2025.2, Android Studio); format-on-save and the local
+        Go runners still work there. Everything that touches com.intellij.platform.lsp lives in
+        go-lsp.xml.
     -->
     <depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>
 
@@ -48,10 +48,11 @@
         -->
         <testSourcesFilter implementation="com.github.pocikode.go_lsp_intellij.GoLspTestSourcesFilter" />
         <!--
-            Running Go tests. None of this needs com.intellij.platform.lsp: the tree is built from
-            `go test -json` and the gutter arrows from the file's own text, so tests run in a build
-            with no LSP module, where the rest of the plugin cannot. Keep it registered here.
+            Running Go programs and tests. None of this needs com.intellij.platform.lsp: declarations
+            come from the file's own text, programs use `go run`, and the test tree comes from
+            `go test -json`. Keep all of it registered here.
         -->
+        <configurationType implementation="com.github.pocikode.go_lsp_intellij.GoRunConfigurationType" />
         <configurationType implementation="com.github.pocikode.go_lsp_intellij.GoTestRunConfigurationType" />
         <!--
             The green run arrows. A runLineMarkerContributor would be the usual extension point, but
@@ -60,7 +61,9 @@
             because that is what claims .go files without the native Go plugin.
         -->
         <codeInsight.lineMarkerProvider language="textmate"
-                                        implementationClass="com.github.pocikode.go_lsp_intellij.GoTestLineMarkerProvider" />
+                                         implementationClass="com.github.pocikode.go_lsp_intellij.GoTestLineMarkerProvider" />
+        <codeInsight.lineMarkerProvider language="textmate"
+                                         implementationClass="com.github.pocikode.go_lsp_intellij.GoMainLineMarkerProvider" />
         <!-- Turns the foo_test.go:12 prefix of a test failure into a link to that line. -->
         <consoleFilterProvider implementation="com.github.pocikode.go_lsp_intellij.GoTestConsoleFilterProvider" />
     </extensions>

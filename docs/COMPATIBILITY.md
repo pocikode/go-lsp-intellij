@@ -2,20 +2,21 @@
 
 ## Baseline
 
-- IntelliJ Platform: 2025.2 (compiled against IntelliJ IDEA Ultimate 2025.2.6)
-- Since-build: `252.25557` (IntelliJ IDEA 2025.2.1, the first build where the LSP API is free to use)
+- IntelliJ Platform: 2026.2 (compiled against the locally installed IntelliJ IDEA 2026.2.2)
+- Since-build: `262.10315`
 - Product target: IntelliJ IDEA
-- Build JDK: 21
-- Plugin bytecode: Java 21
+- Build JDK: 25, from the installed IDE runtime
+- Plugin bytecode: Java 25
 - LSP client: IntelliJ LSP API (`com.intellij.modules.lsp`)
 - Language server: installed `gopls`
+- Program runner: installed `go`, through `go run`
 - Test runner: installed `go`, through `go test -json`
 
 ## IntelliJ Editions
 
 The LSP API ships in the IntelliJ IDEA (Ultimate) distribution and in the other commercial JetBrains IDEs. Since 2025.2.1 it works without a paid license, and since 2025.3 there is a single IntelliJ IDEA distribution, so the plugin is compiled against IU.
 
-The IntelliJ IDEA Community 2025.2 build and Android Studio do not contain the module. The dependency on `com.intellij.modules.lsp` is optional, so the plugin still installs there; the `gofmt` format-on-save action and the whole test runner work, because neither asks `gopls` anything. JetBrains announced that the LSP client is open-sourced starting with 2026.1.4, which will extend it to those products.
+The current artifact targets build 262 and does not install on older IDE releases. The dependency on `com.intellij.modules.lsp` remains optional so platform-independent components stay isolated from the LSP classes.
 
 The plugin must not depend on `com.intellij.modules.ultimate`. Go files are associated by extension so the bundled TextMate Go grammar remains active.
 
@@ -41,7 +42,7 @@ The platform client declares no `documentSymbol` or `workspace/symbol` client ca
 declares them itself, that override should be re-checked rather than removed blindly - `gopls`
 changes what it returns based on what is declared.
 
-## Platform APIs Behind The Test Runner
+## Platform APIs Behind The Runners
 
 None of these need the LSP module; all of them ship in every IntelliJ IDEA build:
 
@@ -58,7 +59,11 @@ None of these need the LSP module; all of them ship in every IntelliJ IDEA build
 - `com.google.gson`, which the platform bundles and lsp4j already depends on, for parsing the
   `go test -json` stream.
 
-## Go Toolchain For Tests
+## Go Toolchain For Programs And Tests
+
+The main-function runner shells out to `go run .` from the package directory. The editable
+configuration can use another package or file target and keeps Go tool arguments before that target,
+with program arguments after it. The runner passes no flags beyond those supplied by the user.
 
 The test runner shells out to `go test -json`. `-json` has been available since Go 1.10, and the
 event fields used - `Action`, `Package`, `Test`, `Output`, `Elapsed` - have been stable since. A
@@ -72,7 +77,7 @@ the need to resolve a bare filename through the filename index, but it does not 
 
 ## API Names
 
-IntelliJ 2026.1.4 renamed the LSP API classes (`LspServerSupportProvider` to `LspIntegrationProvider`, `LspServerDescriptor` to `LspClientDescriptor`, `LspServerManager` to `LspClientManager`). The old names are deprecated but keep working. The plugin uses the 2025.2 names until the since-build is raised.
+IntelliJ 2026.1.4 renamed the LSP API classes (`LspServerSupportProvider` to `LspIntegrationProvider`, `LspServerDescriptor` to `LspClientDescriptor`, `LspServerManager` to `LspClientManager`). The old names remain binary-compatible in 2026.2 but produce deprecation warnings; migrating them is follow-up work.
 
 ## GoLand
 
@@ -98,6 +103,8 @@ Future managed installation must support selecting a Go version without changing
 - The gutter arrows find test functions by matching the file's text. A `func TestX(` written at the
   start of a line inside a raw string literal would be matched; nothing else in Go's grammar can
   produce a false positive there.
+- The main-function arrow also reads the file text. A file whose raw string contains both a
+  line-shaped `package main` and `func main() {` can produce a false marker.
 - A test appears in the test tree when it finishes rather than when it starts. See
   `docs/ARCHITECTURE.md` for why the alternative is worse.
 - `go test` reports a failure's location by base filename, resolved through the filename index. Two

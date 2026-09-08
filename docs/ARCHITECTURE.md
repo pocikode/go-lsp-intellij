@@ -44,6 +44,11 @@ Go toolchain and workspace
 - `GoLspFormatting`: runs Go source text through the local toolchain - `gofmt`, then `goimports` when it is enabled and installed. Shared by format-on-save and by "Implement interface"; every entry point blocks on an external process and must be called off the UI thread.
 - `GoFormatOnSave`: registers the project-level Actions on Save integration and sends the current in-memory `.go` document through `GoLspFormatting`.
 - `GoFormatOnSaveState`: persists the format-on-save choice per project.
+- `GoMainFunction`: finds a runnable `func main()` in a `package main` file. It uses text rather than PSI so the runner has no LSP dependency; its matching tests stay pure JUnit.
+- `GoMainLineMarkerProvider`: places the run arrow on the `main` identifier by offset inside the TextMate PSI leaf.
+- `GoRunConfiguration`, `GoRunConfigurationType` and `GoRunSettingsEditor`: the editable "Go Run" configuration. It stores the working directory, package or file target, Go tool arguments, program arguments, and environment.
+- `GoRunRunningState`: starts `go run`, putting Go tool arguments before the target and program arguments after it, then uses the platform's standard Run console.
+- `GoRunRunner`: creates or reuses the `go run .` configuration behind a main-function gutter click.
 - `GoTestFunctions`: finds the test declarations in a Go file's text and builds the `-run` patterns that select them. Pure text handling, and where the tests are.
 - `GoTestEventTranslator`: turns the `go test -json` event stream into the service messages the platform's SM test runner builds its tree from. Nodes are id-based and a test's start is deferred; see below. Anything that is not an event - a compiler error, a panic - passes through to the console untouched.
 - `GoTestRunConfiguration`, `GoTestRunConfigurationType` and `GoTestSettingsEditor`: the "Go Test" run configuration. It stores the `go test` command line - directory, package pattern, `-run` pattern, extra flags, environment - rather than a friendlier abstraction over it, so what the gutter generated stays readable and editable.
@@ -56,9 +61,9 @@ Go toolchain and workspace
 
 ## Descriptor Layout
 
-`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, format-on-save, and the whole test runner. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
 
-The test runner is deliberately on the other side of that line. Nothing in it asks `gopls` anything - the tree comes from `go test -json` and the gutter arrows from the file's own text - so tests run in a build with no LSP module, where the rest of the plugin cannot. Keep it that way: reaching for `documentSymbol` to find test functions would be the easy way to lose it.
+The runners stay on the other side of that line. Nothing in them asks `gopls` anything: main and test declarations come from file text, programs use `go run`, and the test tree comes from `go test -json`. They therefore work in a build with no LSP module. Keep them that way; reaching for `documentSymbol` to find either declaration would lose that property.
 
 ## Process Lifecycle
 
@@ -87,7 +92,7 @@ The providers still join the platform's settings groups (`references` for usages
 `vcs.code.vision` for the author), so the switches under `Settings | Editor | Inlay Hints | Code
 Vision` govern them as a user would expect.
 
-## Why The Test Runner Places Its Own Gutter Markers
+## Why The Runners Place Their Own Gutter Markers
 
 The platform's route from a click in the gutter to a run is a `RunLineMarkerContributor`, which is
 offered PSI elements and returns an `Info` for the ones it recognises, paired with a
@@ -96,10 +101,15 @@ work with here, for the same reason the code vision is plugin-owned: the bundled
 parses a whole `.go` file into a single PSI leaf, so a contributor would only ever be asked about
 "the whole file" and could place at most one arrow, at line 1.
 
-`GoTestLineMarkerProvider` therefore builds `LineMarkerInfo`s itself, with explicit ranges inside
-that leaf, from the declarations `GoTestFunctions` reads out of the text. `GoTestRunner` does what
-a producer would have done. If a future TextMate release gives `.go` files a real PSI, both become
-replaceable by the platform's own machinery - check that before extending either.
+`GoMainLineMarkerProvider` and `GoTestLineMarkerProvider` therefore build `LineMarkerInfo`s with
+explicit ranges inside that leaf, from declarations read out of the text. `GoRunRunner` and
+`GoTestRunner` do what producers would have done. If a future TextMate release gives `.go` files a
+real PSI, all four become replaceable by the platform's own machinery; check that before extending
+them.
+
+The main action runs `go run .` from the source file's directory. A Go command is a package and may
+span several files, so a file-only target can compile a different program or fail when another file
+defines something `main` uses.
 
 ## Why A Test Appears In The Tree When It Finishes
 

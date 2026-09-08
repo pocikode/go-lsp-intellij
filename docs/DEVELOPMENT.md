@@ -2,7 +2,9 @@
 
 ## Local Setup
 
-Install Java 21 and ensure `JAVA_HOME` points to it. The IDE runtime is not necessarily the correct build JDK.
+Install IntelliJ IDEA in `/Applications/IntelliJ IDEA.app`. The build uses that installation as both
+its IntelliJ Platform dependency and its Java 25 toolchain, so it does not download an IDE into the
+Gradle cache. Override the location with `-PplatformPath=/path/to/IntelliJ IDEA.app`.
 
 Verify Go tooling:
 
@@ -20,31 +22,25 @@ Set `gopls` explicitly in the plugin settings when testing a non-default install
 ./gradlew buildPlugin
 ./gradlew runIde
 ./gradlew verifyPlugin
-./gradlew verifyPlugin -PverifyIdes=all
 ```
 
-`verifyPlugin` verifies against the platform the build already resolved - `ides { current() }`, which
-resolves to the same extracted IDE `intellijIdeaUltimate(platformVersion)` produced. It downloads
-nothing and takes about half a minute, so it is cheap enough to run on any change.
-
-`-PverifyIdes=all` switches to the release selector, one IDE per release from `pluginSinceBuild` to
-`262.*`. That is the check that can catch a break in a newer build - the LSP API renames in 2026.1.4,
-say - and it downloads several gigabytes, one IDE at a time. Run it before a release. Those IDEs sit
-in `~/.gradle/caches/<gradle version>/transforms` and can be deleted afterwards; only the directory
-holding the `platformVersion` build is needed for everyday work.
+`verifyPlugin` verifies against the local platform dependency through `ides { current() }`. Do not
+add an IDE release selector for routine or release checks: selectors download complete IDE builds.
+Upgrade the installed IntelliJ IDEA and rerun the build when checking a newer platform.
 
 The task exits non-zero on a pre-existing internal API usage, `ShowUsagesAction.showUsages`, which
 the code vision needs and the platform offers no public equivalent for. Read the verdict line
 ("Compatible. N usages of ...") and look for problems naming the classes the change touched; the
 exit code alone does not distinguish a new break from that standing one.
 
-`runIde` launches a development IntelliJ IDEA (Ultimate) sandbox with the plugin. The first run downloads the IntelliJ IDEA distribution, which is large. No license is needed for the LSP API in the sandbox.
+`runIde` launches the installed IntelliJ IDEA in a development sandbox with the plugin. It reuses the
+local application and does not download another IDE distribution.
 
 Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Settings` inside the sandbox to log LSP traffic.
 
 ## Testing Strategy
 
-`GoLspSemanticTokensTest` covers the semantic token colour mapping as a plain JUnit 5 test; every case in it is a token/modifier pair `gopls` actually emits. `GoLspMethodStubsTest` covers the Go text "Implement interface" writes, and the parsing of the `(*Repo).Get` names `gopls` gives methods. `GoTestFunctionsTest` covers finding test declarations and building `-run` patterns, and `GoTestEventTranslatorTest` covers the whole `go test -json` translation by feeding it event lines and asserting the service messages that come out - including the escaping, which is why it goes through `ServiceMessageBuilder` rather than string concatenation. Unit tests should likewise cover executable discovery, settings persistence, command construction, and argument handling without launching an IDE.
+`GoLspSemanticTokensTest` covers the semantic token colour mapping as a plain JUnit 5 test; every case in it is a token/modifier pair `gopls` actually emits. `GoLspMethodStubsTest` covers the Go text "Implement interface" writes, and the parsing of the `(*Repo).Get` names `gopls` gives methods. `GoMainFunctionTest` covers recognition of the runnable entry point. `GoTestFunctionsTest` covers finding test declarations and building `-run` patterns, and `GoTestEventTranslatorTest` covers the whole `go test -json` translation by feeding it event lines and asserting the service messages that come out - including the escaping, which is why it goes through `ServiceMessageBuilder` rather than string concatenation. Unit tests should likewise cover executable discovery, settings persistence, command construction, and argument handling without launching an IDE.
 
 Keep logic that can be tested this way out of the LSP, code vision and test-runner plumbing - `GoStructTags`, `GoLspMethodStubs`, `GoTestFunctions` and `GoTestEventTranslator` exist precisely so the interesting part is reachable without an IDE. `GoTestEventTranslator` takes its output as a lambda for that reason; the platform wiring around it is a dozen lines in `GoTestEventsConverter`.
 
@@ -90,6 +86,8 @@ Before publishing:
 - Test at least one module project and one project without `go.mod`.
 - Open a Go file in a Git repository and confirm the usage count, the committer, and "Implement
   interface" all appear, and that generating a method adds the imports its signature needs.
+- Open a `package main` file and confirm the gutter arrow on `func main()` runs the whole package,
+  including source from another file, and passes configured program arguments.
 - Open a `*_test.go` file and confirm the gutter arrows appear, that one runs its test, that
   subtests nest under their parent, that a failure links to its line, and that rerun-failed
   re-runs only what failed.

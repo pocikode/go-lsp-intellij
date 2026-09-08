@@ -1,8 +1,6 @@
-import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-
 plugins {
     java
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.4.20"
     id("org.jetbrains.intellij.platform") version "2.18.1"
 }
 
@@ -18,10 +16,11 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        // The IntelliJ LSP API ships only in the IntelliJ IDEA (Ultimate) distribution, so the
-        // plugin is compiled against IU. Since 2025.2 the API works without a paid license.
-        intellijIdeaUltimate(providers.gradleProperty("platformVersion").get())
-        testFramework(TestFrameworkType.Platform)
+        // Compile against the user's installed IntelliJ IDEA instead of downloading an IDE into
+        // Gradle's cache. Override platformPath when IDEA is installed somewhere else.
+        local(providers.gradleProperty("platformPath").get())
+        bundledModule("intellij.platform.testRunner")
+        bundledModule("intellij.platform.smRunner")
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
     // Gradle 9 no longer puts the launcher on the test runtime classpath implicitly, and the
@@ -31,18 +30,22 @@ dependencies {
 }
 
 tasks.withType<JavaCompile>().configureEach {
-    options.release.set(21)
+    options.release.set(25)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
-        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4)
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4)
     }
 }
 
 intellijPlatform {
+    // The project has no GUI Designer forms and needs no bytecode instrumentation. Disabling it
+    // also avoids resolving the version-matched Java compiler artifact for a local IDE build.
+    instrumentCode = false
+
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         ideaVersion {
@@ -53,18 +56,9 @@ intellijPlatform {
     }
     pluginVerification {
         ides {
-            // Verify against the platform the build already resolved, which costs no download: the
-            // extracted IDE is the same artifact `intellijIdeaUltimate(platformVersion)` produced.
-            // The selector below is the thorough check and pulls one IDE per release in the
-            // supported range - several gigabytes - so it is opt-in rather than the default.
-            if (providers.gradleProperty("verifyIdes").orNull == "all") {
-                select {
-                    sinceBuild = providers.gradleProperty("pluginSinceBuild")
-                    untilBuild = "262.*"
-                }
-            } else {
-                current()
-            }
+            // `current()` reuses the local platform dependency above. Do not add release selectors
+            // here: they download full IDE distributions into Gradle's cache.
+            current()
         }
     }
 }

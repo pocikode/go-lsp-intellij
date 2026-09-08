@@ -18,7 +18,8 @@
 - ~~`go test`, benchmarks, and subtests.~~ Done: the platform test tree from `go test -json`, with
   subtests nested and rerun-failed. Benchmarks run and are reported, but their results are only
   console output; a benchmark's ns/op is not shown in the tree.
-- A "Go Build" / `go run` configuration, which nothing offers yet.
+- ~~A `go run` configuration and a gutter action on `func main()`.~~ Done through `go run .`.
+- A separate "Go Build" configuration.
 - Debugging a test. The gutter offers Run only; Delve speaks DAP natively (`dlv dap`) and the
   platform has DAP support, but that API is still moving. See Phase 4.
 - `go fmt`, `goimports`, `go vet` actions.

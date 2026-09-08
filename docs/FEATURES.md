@@ -18,6 +18,7 @@
 - Code vision above every Go declaration: usage count, code author, and "Implement interface"
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
+- Main-function runner: a run arrow on `func main()`, a "Go Run" configuration, and `go run .` output in the platform Run tool window
 - Go test runner: run arrows in the gutter of a `*_test.go` file, a "Go Test" run configuration, and the platform's test tree fed from `go test -json`
 
 ## Code Vision Above A Declaration
@@ -184,6 +185,22 @@ The IntelliJ LSP client implements these capabilities itself; the plugin only de
 | 2026.1 | Adds range formatting, code lens, optimize imports, rename, on-type formatting |
 
 Each capability also requires `gopls` to advertise it. The platform's go-to-declaration support is disabled for Go on purpose; the plugin implements navigation itself (see the foundation list above).
+
+## Running A Main Package
+
+The plugin puts a run arrow on a parameterless, result-less `func main()` in `package main`. Clicking
+it runs `go run .` with the file's directory as the working directory. The package target matters:
+Go commands often split their entry point across several files, and running only the file under the
+caret would omit the rest of the package.
+
+The generated "Go Run" configuration is temporary and reused for later clicks in the same directory.
+It can be saved and edited under `Run | Edit Configurations`, including its target, Go tool arguments,
+program arguments, environment variables, and working directory. The process uses the platform's
+normal Run console.
+
+The declaration comes from the file text rather than PSI or `gopls`, for the same reason as the test
+arrows below. This keeps the action available as soon as the file opens and in IDE builds without the
+LSP module.
 
 ## Running Tests
 
