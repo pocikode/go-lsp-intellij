@@ -13,7 +13,7 @@
 
 - The build targets the locally installed IntelliJ IDEA `2026.2.2` / since-build `262.10315`, uses the IntelliJ LSP API, compiles plugin bytecode for Java 25, and uses the IDE's bundled Java 25 runtime.
 - The platform dependency is `/Applications/IntelliJ IDEA.app` by default and can be overridden with `-PplatformPath=/path/to/IntelliJ IDEA.app`. Keep it local: do not replace it with an `intellijIdea(...)` dependency or a release selector that downloads a full IDE into Gradle's cache.
-- The repository points Gradle toolchain discovery at the installed IDE's Java 25 runtime. The wrapper delegates to `GRADLE_HOME` or a system `gradle`; the configured Gradle version is `9.7.1`.
+- The repository points Gradle toolchain discovery at the installed IDE's Java 25 runtime. The standard Gradle wrapper downloads the configured Gradle version (`9.7.1`) automatically.
 - `gopls` is an external runtime prerequisite. The plugin currently does not download it; use an installed executable or configure its full path in `Settings | Tools | Go LSP`.
 - `go` itself is a runtime prerequisite of the test runner, found by `GoLspDiscovery.findGoTool`. There is no setting for it: `PATH` and the conventional install locations are searched, `/usr/local/go/bin` included, because an IDE launched from Finder does not inherit the user's shell `PATH`.
 - Useful commands:
