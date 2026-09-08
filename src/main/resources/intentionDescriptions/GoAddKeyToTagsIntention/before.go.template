@@ -1,0 +1,4 @@
+type User struct {
+	FirstName<spot> string
+	City      string `xml:"city"`
+}

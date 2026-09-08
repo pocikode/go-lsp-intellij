@@ -22,6 +22,16 @@
         -->
         <daemon.highlightInfoFilter implementation="com.github.pocikode.go_lsp_intellij.GoLspImportPathFilter" />
         <!--
+            gopls exposes fillStruct as a lazy rewrite, but the generic LSP intention list does not
+            reliably surface it for TextMate Go files. This requests that exact action and delegates
+            resolution and workspace-edit application back to the platform LSP implementation.
+        -->
+        <intentionAction>
+            <language>textmate</language>
+            <category>Go</category>
+            <className>com.github.pocikode.go_lsp_intellij.GoFillAllFieldsIntention</className>
+        </intentionAction>
+        <!--
             The code vision above a Go declaration, which GoLand shows and the platform cannot infer
             here: the bundled TextMate grammar that claims .go files parses each one into a single
             PSI leaf, so the declarations come from `gopls` instead (see GoLspCodeVisionService).

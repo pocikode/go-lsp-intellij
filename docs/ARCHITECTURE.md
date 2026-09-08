@@ -26,6 +26,11 @@ Go toolchain and workspace
 - `GoLspSemanticTokens`: maps `gopls` semantic tokens onto GoLand's own attribute keys by external name, so a GoLand-tuned scheme is honoured and the colours in `colorSchemes/` supply GoLand's defaults otherwise. Returns null for lexical tokens so the TextMate grammar keeps painting them.
 - `GoLspImportPathFilter`: drops the package-coloured highlight `gopls` puts on an import path, which it reports with the same token type as a package qualifier.
 - `GoStructTags` and `GoLspStructTagAnnotator`: find the `key:` of each struct tag from the file text and paint it apart from the rest of the raw string, as GoLand does. `GoStructTags` is pure text handling and carries the tests.
+- `GoStructFields`, `GoStructTagEdits`, and `GoAddKeyToTagsIntention`: find the struct enclosing the caret and add a chosen tag key to its eligible fields. This action is local because `gopls` has no tag-generation code action, and text-backed because TextMate provides no field PSI. The pure text edit planner carries the tests.
+- `GoFillAllFieldsIntention`: explicitly requests only `refactor.rewrite.fillStruct` over the caret's
+  line with an invoked trigger, then delegates lazy action resolution and workspace-edit application
+  to `LspIntentionAction`. The generic platform request is automatic and zero-width, which does not
+  reliably surface this `gopls` rewrite for TextMate Go files.
 - `GoLspColors`: the Go colour keys, under GoLand's external names, shared by the mapping and the extensions above without pulling in the LSP module.
 - `GoLspTestSourcesFilter`: reports `*_test.go` as test sources, putting them in the platform's built-in "Tests" scope so File Colors tints them green, as in GoLand.
 - `GoTodoComments` and `GoTodoPatternBuilder`: scan Go comments and expose their ranges through the
@@ -65,7 +70,12 @@ Go toolchain and workspace
 
 ## Descriptor Layout
 
-`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, TODO comment ranges, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+`plugin.xml` registers only platform-independent parts: settings, the configurable, the notification group, the file icon provider, the Go colour scheme additions, TODO comment ranges, the tag-generation intention, format-on-save, and both local Go runners. `go-lsp.xml` registers the server support provider, the navigation and highlighting extensions, the three code vision providers, and the restart action, and is loaded through `<depends optional="true" config-file="go-lsp.xml">com.intellij.modules.lsp</depends>`. Builds without the LSP module load the plugin without the server integration; everything the code vision needs comes from `gopls`, so it belongs there too.
+
+The standard platform LSP adapter exposes most `gopls` code actions in the intention menu. Prefer
+that route unless a concrete action is missing. **Fill all fields** is the exception above because
+the request range and trigger affect whether `gopls` returns it; the plugin owns only that request,
+not the rewrite or edit application.
 
 The runners stay on the other side of that line. Nothing in them asks `gopls` anything: main and test declarations come from file text, programs use `go run`, and the test tree comes from `go test -json`. They therefore work in a build with no LSP module. Keep them that way; reaching for `documentSymbol` to find either declaration would lose that property.
 

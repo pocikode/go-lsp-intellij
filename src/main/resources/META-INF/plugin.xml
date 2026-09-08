@@ -43,6 +43,15 @@
         <annotator language="textmate"
                    implementationClass="com.github.pocikode.go_lsp_intellij.GoLspStructTagAnnotator" />
         <!--
+            GoLand's Add key to tags intention has no gopls equivalent. It parses fields from text
+            because the bundled TextMate grammar gives a Go file one PSI leaf.
+        -->
+        <intentionAction>
+            <language>textmate</language>
+            <category>Go</category>
+            <className>com.github.pocikode.go_lsp_intellij.GoAddKeyToTagsIntention</className>
+        </intentionAction>
+        <!--
             TextMate indexes TODO words as candidates but exposes an empty PSI lexer, so the TODO
             tool window cannot recover exact items or navigate them. This Go-only lexer contributes
             real comment ranges; `order="last"` makes it win over TextMate's empty builder.

@@ -40,7 +40,7 @@ Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Sett
 
 ## Testing Strategy
 
-`GoLspSemanticTokensTest` covers the semantic token colour mapping as a plain JUnit 5 test; every case in it is a token/modifier pair `gopls` actually emits. `GoLspMethodStubsTest` covers the Go text "Implement interface" writes, and the parsing of the `(*Repo).Get` names `gopls` gives methods. `GoTodoCommentsTest` covers the comment ranges supplied to the TODO search and, in particular, exclusion of comment markers inside every Go literal form. `GoMainFunctionTest` covers recognition of the runnable entry point. `GoTestFunctionsTest` covers finding test declarations and statically named table cases plus building `-run` patterns, and `GoTestEventTranslatorTest` covers the whole `go test -json` translation by feeding it event lines and asserting the service messages that come out - including the escaping, which is why it goes through `ServiceMessageBuilder` rather than string concatenation. Unit tests should likewise cover executable discovery, settings persistence, command construction, and argument handling without launching an IDE.
+`GoLspSemanticTokensTest` covers the semantic token colour mapping as a plain JUnit 5 test; every case in it is a token/modifier pair `gopls` actually emits. `GoLspMethodStubsTest` covers the Go text "Implement interface" writes, and the parsing of the `(*Repo).Get` names `gopls` gives methods. `GoFillAllFieldsIntentionTest` covers the non-empty request range required for the dedicated `gopls` rewrite, and `GoStructTagEditsTest` covers locating the enclosing struct and adding a new key without replacing existing tags. `GoTodoCommentsTest` covers the comment ranges supplied to the TODO search and, in particular, exclusion of comment markers inside every Go literal form. `GoMainFunctionTest` covers recognition of the runnable entry point. `GoTestFunctionsTest` covers finding test declarations and statically named table cases plus building `-run` patterns, and `GoTestEventTranslatorTest` covers the whole `go test -json` translation by feeding it event lines and asserting the service messages that come out - including the escaping, which is why it goes through `ServiceMessageBuilder` rather than string concatenation. Unit tests should likewise cover executable discovery, settings persistence, command construction, and argument handling without launching an IDE.
 
 Keep logic that can be tested this way out of the LSP, code vision and test-runner plumbing - `GoStructTags`, `GoLspMethodStubs`, `GoTestFunctions` and `GoTestEventTranslator` exist precisely so the interesting part is reachable without an IDE. `GoTestEventTranslator` takes its output as a lambda for that reason; the platform wiring around it is a dozen lines in `GoTestEventsConverter`.
 
@@ -86,6 +86,9 @@ Before publishing:
 - Test at least one module project and one project without `go.mod`.
 - Open a Go file in a Git repository and confirm the usage count, the committer, and "Implement
   interface" all appear, and that generating a method adds the imports its signature needs.
+- Put the caret in an incomplete struct literal and confirm `Alt+Enter | Fill all fields` applies the
+  `gopls` rewrite; put it in a struct declaration and confirm **Add key to tags** preserves existing
+  tags and skips fields that already have the chosen key.
 - Open the TODO tool window and confirm Go TODOs appear in both Project and Current File, navigate to
   the exact comment when clicked, and do not include TODO-looking text inside a string literal.
 - Open a `package main` file and confirm the gutter arrow on `func main()` runs the whole package,

@@ -16,6 +16,7 @@
 - Native Go plugin conflict suppression
 - Go to declaration, Cmd/Ctrl+hover link styling, and show usages from a declaration ("Go to Declaration or Usages"), handled by the plugin through gopls definition/references
 - Code vision above every Go declaration: usage count, code author, and "Implement interface"
+- GoLand-style context actions: `gopls`-backed **Fill all fields** for struct literals and plugin-owned **Add key to tags** for struct declarations
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
 - Main-function runner: a run arrow on `func main()`, a "Go Run" configuration, and `go run .` output in the platform Run tool window
@@ -200,6 +201,20 @@ The IntelliJ LSP client implements these capabilities itself; the plugin only de
 | 2026.1 | Adds range formatting, code lens, optimize imports, rename, on-type formatting |
 
 Each capability also requires `gopls` to advertise it. The platform's go-to-declaration support is disabled for Go on purpose; the plugin implements navigation itself (see the foundation list above).
+
+### Go Context Actions
+
+`gopls` advertises **Fill all fields** as `refactor.rewrite.fillStruct`. The generic platform action
+request uses an automatic zero-width range, which does not reliably return this lazy rewrite for a
+TextMate Go file, so `GoFillAllFieldsIntention` explicitly requests that one kind over the caret's
+line with an invoked trigger. Resolution and workspace-edit application still go through the
+platform's LSP action implementation. The rewrite handles local and imported struct types, existing
+keyed fields, and zero values using `gopls`'s Go type information.
+
+GoLand's **Add key to tags** has no LSP equivalent. The plugin supplies it from the file text: when
+the caret is in a struct declaration, it asks for a key and adds `key:"snake_case_name"` to each
+eligible field that does not already carry that key. Existing tag pairs are retained. As with the
+other text-backed features, grouped field declarations are left unchanged rather than guessed at.
 
 ## Running A Main Package
 

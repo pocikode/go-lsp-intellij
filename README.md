@@ -22,6 +22,7 @@ The first milestone is the server integration foundation:
 - LSP-backed diagnostics, completion, hover, go-to-definition, find usages, code actions, formatting, folding, and inlay hints
 - Cmd/Ctrl+hover link styling, Cmd/Ctrl+click navigation, and usages popup on declarations, as in GoLand
 - GoLand's code vision above every Go declaration: a usage count, the last committer, and "Implement interface"
+- Go context actions from the editor lightbulb, including `gopls`'s **Fill all fields** and a plugin-owned **Add key to tags** action for struct fields
 - TODO tool-window support for `TODO`, `FIXME`, and custom TODO patterns in Go comments, including
   the Project and Current File views and navigation to the matching source
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
@@ -48,6 +49,14 @@ declaration, as in GoLand.
 The entries appear a moment after a file opens rather than instantly: they are computed from `gopls`
 in the background, not during highlighting. Authors come from the file as last saved, so a file with
 unsaved edits keeps the previous names until it is saved again.
+
+## Context Actions
+
+Press `Alt+Enter` in a Go file to open the normal IntelliJ intention menu. **Fill all fields** asks
+`gopls` for its dedicated struct rewrite: on a struct literal it inserts every missing keyed field
+with the correct zero value. **Add key to tags** is available inside a struct declaration; enter a
+key such as `json`, `xml`, or `db` and the action adds snake-case values to fields that do not
+already have that key while preserving existing tags.
 
 ## Running Programs
 

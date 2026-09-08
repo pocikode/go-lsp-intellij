@@ -1,0 +1,6 @@
+type Person struct { Name string; Age int }
+
+_ = Person{
+	Name: "",
+	Age:  0,
+}

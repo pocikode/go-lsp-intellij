@@ -1,0 +1,4 @@
+type User struct {
+	FirstName string `json:"first_name"`
+	City      string `xml:"city" json:"city"`
+}
