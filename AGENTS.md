@@ -21,8 +21,10 @@
   - `./gradlew buildPlugin` builds `build/distributions/go-lsp-intellij-<version>.zip`.
   - `./gradlew runIde` launches a development IntelliJ sandbox.
   - `./gradlew verifyPluginStructure` checks the plugin descriptor and archive structure quickly.
-  - `./gradlew verifyPlugin` runs Plugin Verifier against supported IDEA builds and can download several large IDE distributions; run it for compatibility changes, not every edit.
+  - `./gradlew verifyPlugin` runs Plugin Verifier against the platform the build already resolved, which downloads nothing and takes about half a minute.
+  - `./gradlew verifyPlugin -PverifyIdes=all` runs it against one IDE per release across the supported range instead. That is the thorough check and downloads several gigabytes, so run it before a release, not for every edit.
 - The normal verification order is `test`, `buildPlugin`, `verifyPluginStructure`, then `verifyPlugin` when platform/API compatibility needs checking.
+- `verifyPlugin` currently exits non-zero on a pre-existing internal API usage - `ShowUsagesAction.showUsages`, which the code vision needs and the platform offers no public equivalent for. The verdict line above the failure is the one that matters: read the report for "Compatible" and for new problems naming the classes you touched, rather than treating the exit code as the answer.
 
 ## Architecture
 

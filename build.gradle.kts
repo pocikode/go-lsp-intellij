@@ -53,9 +53,17 @@ intellijPlatform {
     }
     pluginVerification {
         ides {
-            select {
-                sinceBuild = providers.gradleProperty("pluginSinceBuild")
-                untilBuild = "262.*"
+            // Verify against the platform the build already resolved, which costs no download: the
+            // extracted IDE is the same artifact `intellijIdeaUltimate(platformVersion)` produced.
+            // The selector below is the thorough check and pulls one IDE per release in the
+            // supported range - several gigabytes - so it is opt-in rather than the default.
+            if (providers.gradleProperty("verifyIdes").orNull == "all") {
+                select {
+                    sinceBuild = providers.gradleProperty("pluginSinceBuild")
+                    untilBuild = "262.*"
+                }
+            } else {
+                current()
             }
         }
     }
