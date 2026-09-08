@@ -18,6 +18,28 @@ The IntelliJ IDEA Community 2025.2 build and Android Studio do not contain the m
 
 The plugin must not depend on `com.intellij.modules.ultimate`. Go files are associated by extension so the bundled TextMate Go grammar remains active.
 
+## Platform APIs Beyond The LSP Client
+
+The code vision uses three platform APIs worth recording, because they are the ones most likely to
+move under the plugin:
+
+- `DaemonBoundCodeVisionProvider` and `ModificationStampUtil`, for the entries themselves and for
+  forcing the code vision pass to run again when a `gopls` answer arrives.
+- `AnnotationProvider` and `FileAnnotation`, for the committer behind the code author entry. It is
+  Git-only, as the platform's own code author vision is.
+- `ShortNameType`, which the platform uses to abbreviate a committer's name, lives in a platform
+  module the plugin does not compile against. The full name is shown instead, which is that
+  setting's default.
+
+The plugin deliberately does **not** implement `VcsCodeVisionLanguageContext`, the extension point
+the platform offers for contributing a code author vision to a language. It cannot work for Go here;
+see `docs/ARCHITECTURE.md`.
+
+The platform client declares no `documentSymbol` or `workspace/symbol` client capabilities, so
+`GoLspServerDescriptor` overrides `clientCapabilities` to add them. If a future platform release
+declares them itself, that override should be re-checked rather than removed blindly - `gopls`
+changes what it returns based on what is declared.
+
 ## API Names
 
 IntelliJ 2026.1.4 renamed the LSP API classes (`LspServerSupportProvider` to `LspIntegrationProvider`, `LspServerDescriptor` to `LspClientDescriptor`, `LspServerManager` to `LspClientManager`). The old names are deprecated but keep working. The plugin uses the 2025.2 names until the since-build is raised.
@@ -39,3 +61,10 @@ Future managed installation must support selecting a Go version without changing
 - Large workspaces can take time to load and analyze.
 - A missing or non-executable `gopls` path prevents server startup; the plugin shows a notification with a link to the settings.
 - Multiple Go installations can make automatic discovery ambiguous.
+- The code vision depends on how the bundled TextMate grammar parses `.go` files - today, into a
+  single PSI leaf per file. A future TextMate release that produces real per-token leaves would not
+  break anything, but it would make the platform's own code author vision reusable and this
+  plugin's worth revisiting.
+- Reference counts cost one `textDocument/references` call per declaration. They are cached and
+  computed in the background, capped at 200 declarations per file and four concurrent requests, but
+  a very large workspace still makes them slow to appear.

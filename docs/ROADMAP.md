@@ -4,6 +4,7 @@
 
 - Stabilize the IntelliJ LSP API integration.
 - Validate diagnostics, completion, hover, navigation, references, rename, imports, symbols, code actions, and format-on-save.
+- Extend the code vision where GoLand goes further: an implementations count on interfaces, and "Add method to interface".
 - Add disk-backed integration tests.
 - Offer to install `gopls` from the missing-server notification.
 
@@ -28,6 +29,7 @@
 ## Phase 4: GoLand Parity Attempt
 
 - Detect native Go support.
+- Revisit the plugin-owned code vision if a future TextMate release gives `.go` files a real PSI, which would make the platform's own usage and code author visions reusable.
 - Decide whether to coexist, disable duplicate features, or provide an explicit LSP mode.
 - Modern Delve integration.
 - Native project model integrations where LSP is insufficient.

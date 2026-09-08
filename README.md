@@ -21,9 +21,29 @@ The first milestone is the server integration foundation:
 - Language-server status bar widget and restart action
 - LSP-backed diagnostics, completion, hover, go-to-definition, find usages, code actions, formatting, folding, and inlay hints
 - Cmd/Ctrl+hover link styling, Cmd/Ctrl+click navigation, and usages popup on declarations, as in GoLand
+- GoLand's code vision above every Go declaration: a usage count, the last committer, and "Implement interface"
 - Optional GoLand-style format-on-save through `gofmt`, with optional `goimports` import organization
 
 Signature help, structure view, and call hierarchy are provided by the platform starting with IntelliJ IDEA 2025.3. See [docs/FEATURES.md](docs/FEATURES.md) for the full matrix.
+
+## Code Vision
+
+Above each declaration the plugin shows what GoLand shows there:
+
+- **N usages**, counted with `textDocument/references`. Clicking opens the Show Usages popup.
+- **The last committer**, from `git blame`. Clicking toggles the Git annotations gutter.
+- **Implement interface** on a struct or named type, above the declaration. Clicking opens a
+  searchable list of interfaces; picking one writes the missing methods onto the type and runs
+  `goimports` over the result.
+
+Position and visibility follow `Settings | Editor | Inlay Hints | Code Vision`. The usage count sits
+in the platform's **Usages** group and the committer in its **Code author** group, so the switches
+already there govern both; "Implement interface" has a group of its own and is pinned above the
+declaration, as in GoLand.
+
+The entries appear a moment after a file opens rather than instantly: they are computed from `gopls`
+in the background, not during highlighting. Authors come from the file as last saved, so a file with
+unsaved edits keeps the previous names until it is saved again.
 
 ## Requirements
 

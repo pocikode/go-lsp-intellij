@@ -15,8 +15,94 @@
 - Restart action in the Tools menu
 - Native Go plugin conflict suppression
 - Go to declaration, Cmd/Ctrl+hover link styling, and show usages from a declaration ("Go to Declaration or Usages"), handled by the plugin through gopls definition/references
+- Code vision above every Go declaration: usage count, code author, and "Implement interface"
 - Optional GoLand-style format-on-save through local `gofmt`, configurable under Actions on Save
 - Optional import organization through `goimports`
+
+## Code Vision Above A Declaration
+
+GoLand shows three things above a Go declaration, and all three are here.
+
+Nothing about them can come from the PSI. The bundled TextMate grammar that claims `.go` files
+parses a whole file into a **single** leaf - not the run of token-sized leaves its highlighting lexer
+produces - so there is no per-declaration element for the platform's own providers to hang anything
+on. The declarations come from `textDocument/documentSymbol` instead.
+
+That needs a capability the platform client does not declare. `gopls` tailors its answer to what the
+client claims, and without `hierarchicalDocumentSymbolSupport` it replies with a flat list carrying
+no signatures and no struct or interface members. `GoLspServerDescriptor` overrides
+`clientCapabilities` to declare it, along with `workspace/symbol`.
+
+### Usages
+
+`N usages` from `textDocument/references`, counted for every top-level declaration and every method
+declared on one - not for struct fields or interface methods, which is where GoLand draws the line
+too. Clicking opens the platform's Show Usages popup, answered by `GoLspUsageSearcher` through the
+`GoLspSymbol` target the entry carries, so the popup agrees with Find Usages.
+
+The provider joins the platform's `references` settings group, so the **Usages** switch under
+`Settings | Editor | Inlay Hints | Code Vision` governs it.
+
+### Code Author
+
+The last committer, read from `git blame` through `AnnotationProvider` and formatted the way the
+platform formats it: `Name`, `Name *` when part of the range is uncommitted, `Name +2` when others
+contributed, `Name +2 *`, or `new *` for code that was never committed. Clicking toggles the Git
+annotations gutter through the same `Annotate` action the platform's hint uses.
+
+The platform ships this vision, and the first implementation here tried to reuse it by registering a
+`VcsCodeVisionLanguageContext` for TextMate. That cannot work: the platform walks the PSI asking the
+context which elements are declarations, and one leaf per file is not something that can be pointed
+at declarations. `GoLspCodeAuthors` reads the blame directly instead. The provider still joins the
+platform's `vcs.code.vision` group, so the **Code author** switch governs it as usual.
+
+### Implement Interface
+
+Pinned above the declaration on a struct or named type, with GoLand's own icon
+(`AllIcons.Actions.SuggestedRefactoringBulb`) and anchor (`Top`), both taken from GoLand's provider
+rather than guessed. Interfaces are excluded: a Go interface is satisfied structurally, so methods
+are only ever generated onto a concrete type.
+
+`gopls` has no code action behind this, for the same structural reason, so the chooser and the
+generation are the plugin's. The chooser queries `workspace/symbol` on each keystroke, seeded with
+the enclosing `go.mod` module path because `gopls` answers an empty query with nothing. Methods are
+built from the signatures `documentSymbol` reports for the chosen interface, following embedded
+interfaces into their own files, and the body is GoLand's:
+
+```go
+func (r *Repo) Get(ctx context.Context, id string) (*V1, error) {
+	//TODO implement me
+	panic("implement me")
+}
+```
+
+Methods the type already implements are skipped, and the receiver name and pointer-ness are taken
+from its existing methods when it has any. `goimports` runs over the result to add whatever the new
+signatures reference.
+
+### How The Entries Reach The Screen
+
+A `textDocument/references` call per declaration is far too slow to answer a highlighting pass
+inline, so `GoLspCodeVisionService` computes everything in the background and the providers only read
+its cache. Two consequences are visible:
+
+- The entries appear a moment after a file opens, not instantly. A `gopls` answer arriving is not a
+  PSI change, and the code vision pass skips a file whose PSI has not changed since it last ran, so
+  the service drops that stamp before restarting the daemon; without it the entries would wait for
+  the next keystroke.
+- Usage counts and authors are keyed by declaration name rather than position, so an edit elsewhere
+  in the file leaves them attached to the right declaration while only the ranges refresh.
+
+### Known Remaining Differences
+
+- Authors come from the file as last saved. `git blame` is indexed by the lines of the file on disk,
+  so a document with unsaved edits keeps the authors from the last saved state rather than blaming
+  lines that have since moved; they are re-read on the first refresh after a save.
+- The committer is always the full name. The platform abbreviates it according to the annotation
+  gutter's short-name setting, but that setting's class lives in a platform module the plugin does
+  not compile against, and its default is the full name.
+- Usage counts stop after the first 200 declarations in a file.
+- A generic type's generated methods do not carry its type parameters.
 
 ## Colour Scheme Parity With GoLand
 
@@ -81,8 +167,8 @@ tests, which is the intended meaning for a Go test file.
   This matches GoLand at its default setting, but not GoLand with semantic highlighting switched on,
   where struct members and functions split by export.
 - Method receivers arrive as ordinary parameters, so `GO_METHOD_RECEIVER` is never used.
-- Code vision (usage counts, authors), parameter name inlay hints, and GoLand's hyperlinking of
-  route strings are separate features, not colours; they are absent regardless of the scheme.
+- Parameter name inlay hints and GoLand's hyperlinking of route strings are separate features, not
+  colours; they are absent regardless of the scheme. Code vision is implemented - see above.
 - Ctrl/Cmd+click from an import path to pkg.go.dev is gone with document links; navigation into the
   package source through `gopls` is unaffected.
 
