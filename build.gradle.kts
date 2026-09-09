@@ -68,7 +68,7 @@ dependencies {
         bundledModule("intellij.platform.smRunner")
         bundledPlugin("org.jetbrains.plugins.terminal")
     }
-    testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     // Gradle 9 no longer puts the launcher on the test runtime classpath implicitly, and the
     // platform test framework's session listener still reaches for the JUnit 3 base class.
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
