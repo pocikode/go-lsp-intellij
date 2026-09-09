@@ -7,6 +7,8 @@ import com.intellij.find.usages.api.UsageSearcher
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.PsiManager
+import com.intellij.util.EmptyQuery
+import com.intellij.util.Query
 
 /** Answers usage searches for [GoLspSymbol] targets with `textDocument/references` results from `gopls`. */
 class GoLspUsageSearcher : UsageSearcher {
@@ -28,4 +30,9 @@ class GoLspUsageSearcher : UsageSearcher {
             }
         }
     }
+
+    // Override both defaults so Kotlin does not generate bridges that invoke override-only methods.
+    override fun collectSearchRequests(parameters: UsageSearchParameters): Collection<Query<out Usage>> = emptyList()
+
+    override fun collectSearchRequest(parameters: UsageSearchParameters): Query<out Usage> = EmptyQuery.getEmptyQuery()
 }

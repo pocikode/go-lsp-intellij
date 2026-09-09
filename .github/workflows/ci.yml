@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test, build, and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up IntelliJ Platform
+        uses: ./.github/actions/setup-intellij
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+
+      - name: Test and build plugin
+        run: ./gradlew --no-daemon test buildPlugin verifyPluginStructure
+
+      - name: Verify binary compatibility
+        run: .github/scripts/verify-plugin.sh
+
+      - name: Upload plugin distribution
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: go-lsp-intellij-${{ github.sha }}
+          path: build/distributions/*.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verification-reports-${{ github.sha }}
+          path: |
+            build/reports/tests/
+            build/reports/pluginVerifier/
+            build/reports/problems/
+          if-no-files-found: ignore
+          retention-days: 14

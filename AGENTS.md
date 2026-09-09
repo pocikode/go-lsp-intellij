@@ -23,7 +23,7 @@
   - `./gradlew verifyPluginStructure` checks the plugin descriptor and archive structure quickly.
   - `./gradlew verifyPlugin` runs Plugin Verifier against the installed IDE and downloads no IDE distribution.
 - The normal verification order is `test`, `buildPlugin`, `verifyPluginStructure`, then `verifyPlugin` when platform/API compatibility needs checking.
-- `verifyPlugin` currently exits non-zero on a pre-existing internal API usage - `ShowUsagesAction.showUsages`, which the code vision needs and the platform offers no public equivalent for. The verdict line above the failure is the one that matters: read the report for "Compatible" and for new problems naming the classes you touched, rather than treating the exit code as the answer.
+- `verifyPlugin` currently exits non-zero on a pre-existing internal API usage - `ShowUsagesAction.showUsages`, which the code vision needs and the platform offers no public equivalent for. Use `.github/scripts/verify-plugin.sh` for the automated policy: it requires a `Compatible` verdict, accepts only that internal usage, and rejects override-only usage or any additional internal API. `GoLspUsageSearcher` must explicitly implement both empty search-request methods; otherwise Kotlin emits bridges that invoke the platform's override-only defaults.
 
 ## Architecture
 

@@ -1,5 +1,7 @@
 # Go LSP for IntelliJ IDEA
 
+[![CI](https://github.com/pocikode/go-lsp-intellij/actions/workflows/ci.yml/badge.svg)](https://github.com/pocikode/go-lsp-intellij/actions/workflows/ci.yml)
+
 <!-- Plugin description -->
 
 Free Go language support for IntelliJ IDEA powered by the installed `gopls` language server and the IntelliJ LSP API.
@@ -192,6 +194,11 @@ with `-PplatformPath=/path/to/IntelliJ IDEA` or `INTELLIJ_PLATFORM_PATH`, then r
 
 The plugin distribution is written to `build/distributions`.
 
+Pull requests and pushes to `main` run the same tests, plugin build, structure check, and binary
+compatibility check in GitHub Actions. Tagged releases attach a signed plugin ZIP and its SHA-256
+checksum to GitHub Releases. See [docs/RELEASING.md](docs/RELEASING.md) for versioning, signing, and
+optional JetBrains Marketplace publication.
+
 ## Configuration
 
 Open `Settings | Tools | Go LSP`:
@@ -217,4 +224,5 @@ GoLand already includes JetBrains' native Go plugin. When that plugin is actuall
 - [Features](docs/FEATURES.md)
 - [Compatibility](docs/COMPATIBILITY.md)
 - [Development and testing](docs/DEVELOPMENT.md)
+- [Release process](docs/RELEASING.md)
 - [Roadmap](docs/ROADMAP.md)

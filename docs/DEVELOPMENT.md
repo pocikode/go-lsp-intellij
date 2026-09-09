@@ -38,6 +38,29 @@ exit code alone does not distinguish a new break from that standing one.
 `runIde` launches the installed IntelliJ IDEA in a development sandbox with the plugin. It reuses the
 local application and does not download another IDE distribution.
 
+## Continuous Integration
+
+`.github/workflows/ci.yml` runs on pull requests, pushes to `main`, and manual dispatches. The Linux
+runner downloads the exact IntelliJ IDEA version named by the project, verifies the archive checksum,
+and uses that installation both as `INTELLIJ_PLATFORM_PATH` and as the Java 25 runtime. This preserves
+the local-platform dependency rule rather than asking Gradle to resolve and cache an IDE distribution.
+
+The CI gate runs `test`, `buildPlugin`, `verifyPluginStructure`, and Plugin Verifier. Successful runs
+retain the installable ZIP for 14 days; test and verifier reports are uploaded even when a check fails.
+Third-party actions are pinned to commit SHAs, and Dependabot proposes weekly Gradle and action
+updates.
+
+Use `.github/scripts/verify-plugin.sh` when reproducing the CI verifier policy locally. It requires
+Plugin Verifier to report `Compatible`, rejects any new internal or override-only API use, and accepts
+only the documented `ShowUsagesAction.showUsages` internal call. `GoLspUsageSearcher` explicitly
+overrides the two empty search-request defaults because Kotlin otherwise generates bridges that invoke
+the platform's override-only methods. The script is necessary because the Gradle task still exits
+non-zero for the accepted internal call even though the compatibility verdict is successful.
+
+If the target IntelliJ version changes, update all of these together: `gradle.properties`, the
+compatibility documentation, and the version and Linux archive checksum in
+`.github/actions/setup-intellij/action.yml`.
+
 Enable `#com.intellij.platform.lsp` in `Help | Diagnostic Tools | Debug Log Settings` inside the sandbox to log LSP traffic.
 
 ## Testing Strategy
@@ -110,3 +133,6 @@ Before publishing:
   refreshes versions, replacements, updates, retractions, graph edges, and `govulncheck` findings.
 - Confirm all four module/checksum files have lexical colours; invoke completion in `go.mod` and
   `go.sum`, and verify `go.work` completion still comes from `gopls`.
+
+After the manual checks, follow [RELEASING.md](RELEASING.md). A release tag reruns the automated gate
+from a clean build before signing or publishing anything.

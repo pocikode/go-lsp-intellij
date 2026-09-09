@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Sign and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${GITHUB_REF_NAME#v}"
+          plugin_version="$(grep '^pluginVersion=' gradle.properties | cut -d= -f2-)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            printf 'Tag %s is not a supported semantic version tag.\n' "$GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          if [[ "$version" != "$plugin_version" ]]; then
+            printf 'Tag version %s does not match pluginVersion %s.\n' "$version" "$plugin_version" >&2
+            exit 1
+          fi
+
+          git fetch origin main
+          tagged_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          if ! git merge-base --is-ancestor "$tagged_commit" origin/main; then
+            printf 'Release tag must point to a commit on main.\n' >&2
+            exit 1
+          fi
+
+          channel="default"
+          if [[ "$version" == *-* ]]; then
+            channel="${version#*-}"
+            channel="${channel%%.*}"
+          fi
+          printf 'PUBLISH_CHANNEL=%s\n' "$channel" >> "$GITHUB_ENV"
+
+      - name: Set up IntelliJ Platform
+        uses: ./.github/actions/setup-intellij
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          cache-read-only: true
+
+      - name: Test and build plugin
+        run: ./gradlew --no-daemon clean test buildPlugin verifyPluginStructure
+
+      - name: Verify binary compatibility
+        run: .github/scripts/verify-plugin.sh
+
+      - name: Prepare signing credentials
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          credentials_dir="$RUNNER_TEMP/plugin-signing"
+          mkdir -p "$credentials_dir"
+          printf '%s\n' "$CERTIFICATE_CHAIN" > "$credentials_dir/chain.crt"
+          printf '%s\n' "$PRIVATE_KEY" > "$credentials_dir/private.pem"
+          chmod 600 "$credentials_dir/chain.crt" "$credentials_dir/private.pem"
+          printf 'CERTIFICATE_CHAIN_FILE=%s\n' "$credentials_dir/chain.crt" >> "$GITHUB_ENV"
+          printf 'PRIVATE_KEY_FILE=%s\n' "$credentials_dir/private.pem" >> "$GITHUB_ENV"
+
+      - name: Sign and verify plugin distribution
+        env:
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon signPlugin verifyPluginSignature
+
+      - name: Prepare release assets
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(build/distributions/*-signed.zip)
+          if [[ ${#archives[@]} -ne 1 ]]; then
+            printf 'Expected one signed distribution, found %s.\n' "${#archives[@]}" >&2
+            exit 1
+          fi
+
+          archive="${archives[0]}"
+          checksum="$archive.sha256"
+          hash="$(sha256sum "$archive" | cut -d ' ' -f1)"
+          printf '%s  %s\n' "$hash" "$(basename "$archive")" > "$checksum"
+          printf 'archive=%s\n' "$archive" >> "$GITHUB_OUTPUT"
+          printf 'checksum=%s\n' "$checksum" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          options=(--verify-tag --generate-notes --title "$GITHUB_REF_NAME")
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            options+=(--prerelease)
+          fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              "${{ steps.assets.outputs.archive }}" \
+              "${{ steps.assets.outputs.checksum }}" \
+              --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              "${{ steps.assets.outputs.archive }}" \
+              "${{ steps.assets.outputs.checksum }}" \
+              "${options[@]}"
+          fi
+
+      - name: Publish to JetBrains Marketplace
+        if: vars.PUBLISH_TO_MARKETPLACE == 'true'
+        env:
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: ./gradlew --no-daemon publishPlugin
+
+      - name: Upload verification reports
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-verification-${{ github.ref_name }}
+          path: |
+            build/reports/tests/
+            build/reports/pluginVerifier/
+            build/reports/problems/
+          if-no-files-found: ignore
+          retention-days: 30

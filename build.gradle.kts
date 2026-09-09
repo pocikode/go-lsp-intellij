@@ -107,10 +107,29 @@ intellijPlatform {
             current()
         }
     }
+    signing {
+        certificateChainFile = layout.file(
+            providers.environmentVariable("CERTIFICATE_CHAIN_FILE").map { file(it) }
+        )
+        privateKeyFile = layout.file(
+            providers.environmentVariable("PRIVATE_KEY_FILE").map { file(it) }
+        )
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        channels = providers.environmentVariable("PUBLISH_CHANNEL")
+            .map { listOf(it) }
+            .orElse(listOf("default"))
+    }
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.named("verifyPluginSignature") {
+    dependsOn("signPlugin")
 }
 
 tasks.wrapper {

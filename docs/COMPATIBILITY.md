@@ -39,6 +39,12 @@ The plugin deliberately does **not** implement `VcsCodeVisionLanguageContext`, t
 the platform offers for contributing a code author vision to a language. It cannot work for Go here;
 see `docs/ARCHITECTURE.md`.
 
+Plugin Verifier reports the deliberate `ShowUsagesAction.showUsages` call as one internal API usage.
+CI parses the verifier reports rather than ignoring its exit code: the binary verdict must be
+`Compatible`, that exact call is the only accepted internal usage, and no override-only usages are
+accepted. `GoLspUsageSearcher` explicitly implements both empty search-request methods because Kotlin
+otherwise emits bridge methods that call their override-only platform defaults.
+
 Go TODO items use the platform's `IndexPatternBuilder` extension. The interface is intended for
 language integrations but lives in `com.intellij.psi.impl.search`, so it is a platform compatibility
 risk and must remain covered by compilation, plugin structure verification, and Plugin Verifier.
